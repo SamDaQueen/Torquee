@@ -39,7 +39,7 @@ class Simulator:
 
     def close(self):
         """
-        The __del__ function closes the simulator.
+        The close function closes the simulator.
         """
         self.env.close()
 
