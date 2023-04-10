@@ -1,7 +1,6 @@
 import swift
 
-from src.puma560 import Puma560
-
+from puma560 import Puma560
 
 class Simulator:
     def __init__(self):
