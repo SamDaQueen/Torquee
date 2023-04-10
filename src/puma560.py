@@ -16,7 +16,7 @@ class Puma560:
         self.puma.q = self.arm_configs
         self.env.add(self.puma, robot_alpha=True, collision_alpha=False)
 
-    def move_arm(self, target, dt, interp_time, wait_time):
+    def move_arm(self, target, dt, interp_time, wait_time, payload=0):
         """
         The move_arm function moves the arm to the target pose.
 
@@ -28,23 +28,19 @@ class Puma560:
         traj = rtb.tools.trajectory.jtraj(self.puma.q, target, np.linspace(0.0, 1.0, int(interp_time / dt)))
         shape = traj.q.shape
 
+        dh_puma = rtb.models.DH.Puma560()
+
+        # Set payload
+        dh_puma.payload(payload, np.r_[0, 0, 0.1])
+
         torques = []
         for i in range(shape[0]):
             self.puma.q = traj.q[i]
-            torques.append(rtb.models.DH.Puma560().itorque(self.puma.q, traj.qdd[i]))
+            torques.append(abs(dh_puma.rne(self.puma.q, traj.qd[i], traj.qdd[i])))
+
             self.env.step(dt)
 
-        torque_sums = np.sum(torques, axis=1)
-        print(torque_sums)
-
-        # for alpha in np.linspace(0.0, 1.0, int(interp_time / dt)):
-        #     self.puma.q = self.arm_configs + alpha * (target - self.arm_configs)
-        #     self.env.step(dt)
-
-        for alpha in np.linspace(0.0, 1.0, int(interp_time / dt)):
-            self.puma.q = self.arm_configs + alpha * (target - self.arm_configs)
-            self.env.step(dt)
-
+        return np.sum(np.sum(torques, axis=1))
 
     def reset(self):
         """

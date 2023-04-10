@@ -2,6 +2,7 @@ import swift
 
 from puma560 import Puma560
 
+
 class Simulator:
     def __init__(self):
         """
@@ -15,8 +16,9 @@ class Simulator:
         self.wait_time = 2
         self.poses = [self.robot.puma.qz, self.robot.puma.qr, self.robot.puma.qs,
                       self.robot.puma.qd, self.robot.puma.qz]
+        self.payload = 0
 
-    def run(self, poses=None, dt=None, interp_time=None, wait_time=None):
+    def run(self, poses=None, dt=None, interp_time=None, wait_time=None, payload=0):
         """
         The run function runs the simulator.
         """
@@ -24,11 +26,16 @@ class Simulator:
         self.interp_time = interp_time or self.interp_time
         self.wait_time = wait_time or self.wait_time
         self.poses = poses or self.poses
+        self.payload = payload
+
+        sum_of_torques = 0
 
         for previous, target in zip(self.poses[:-1], self.poses[1:]):
-            self.robot.move_arm(target, self.dt, self.interp_time, self.wait_time)
+            sum_of_torques += self.robot.move_arm(target, self.dt, self.interp_time, self.wait_time, self.payload)
 
         self.robot.reset()
+
+        return sum_of_torques
 
     def reset(self):
         """
@@ -45,4 +52,5 @@ class Simulator:
 
 if __name__ == '__main__':
     simulator = Simulator()
-    simulator.run(dt=0.1, interp_time=1, wait_time=0.01)
+    sum_of_torques = simulator.run(dt=0.1, interp_time=1, wait_time=0.01, payload=1)
+    print(sum_of_torques)
