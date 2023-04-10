@@ -1,6 +1,6 @@
 import swift
 
-from src.puma560 import Puma560
+from puma560 import Puma560
 
 <<<<<<< HEAD
 # Create a puma in the default zero pose
