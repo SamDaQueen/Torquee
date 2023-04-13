@@ -13,7 +13,7 @@ def sample_spherical(coordinates, npoints, ndim=3, scale=0.05):
 
 def torque_cost(robot, q, qd, qdd):
     tau = robot.rne(q, qd, qdd)
-    cost = np.sum(np.square(tau))
+    cost = np.sum(np.sqrt(np.square(tau))) / len(q)
     return cost
 
 

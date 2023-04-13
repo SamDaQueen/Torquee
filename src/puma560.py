@@ -11,7 +11,7 @@ class Puma560:
         :param orig_q: Set the initial arm configuration
         """
         self.puma = rtb.models.Puma560()
-        self.arm_configs = orig_q or self.puma.qz  # default to zero pose
+        self.arm_configs = orig_q if orig_q is not None else self.puma.qz  # default to zero pose
         self.env = env
         self.puma.q = self.arm_configs
         self.env.add(self.puma, robot_alpha=True, collision_alpha=False)
@@ -25,25 +25,13 @@ class Puma560:
         :param interp_time: The interpolation time
         :param wait_time: The wait time
         """
-        traj = rtb.tools.trajectory.jtraj(self.puma.q, target, np.linspace(0.0, 1.0, int(interp_time / dt)))
-        shape = traj.q.shape
-
-        torques = []
-        for i in range(shape[0]):
-            self.puma.q = traj.q[i]
-            torques.append(rtb.models.DH.Puma560().itorque(self.puma.q, traj.qdd[i]))
-            self.env.step(dt)
-
-        torque_sums = np.sum(torques, axis=1)
-        print(torque_sums)
-
-        # for alpha in np.linspace(0.0, 1.0, int(interp_time / dt)):
-        #     self.puma.q = self.arm_configs + alpha * (target - self.arm_configs)
-        #     self.env.step(dt)
-
         for alpha in np.linspace(0.0, 1.0, int(interp_time / dt)):
             self.puma.q = self.arm_configs + alpha * (target - self.arm_configs)
             self.env.step(dt)
+        for _ in range(int(wait_time / dt)):
+            self.puma.q = target
+            self.env.step(dt)
+        self.arm_configs = target
 
 
     def reset(self):

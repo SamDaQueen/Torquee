@@ -31,7 +31,7 @@ class RobotCSpace:
     def find_neighbors(self, config):
         neighbors = []
         for i in range(len(config)):
-            for delta in [-1, 0, 1]:
+            for delta in [-1, 1]:
                 neighbor_config = config.copy()
                 neighbor_config[i] += delta * self.step_size
                 if np.all(neighbor_config >= 0) and np.all(neighbor_config < 360):
