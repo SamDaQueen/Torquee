@@ -41,10 +41,10 @@ class Puma560:
         #     self.puma.q = self.arm_configs + alpha * (target - self.arm_configs)
         #     self.env.step(dt)
 
-        for _ in range(int(wait_time / dt)):
-            self.puma.q = target
+        for alpha in np.linspace(0.0, 1.0, int(interp_time / dt)):
+            self.puma.q = self.arm_configs + alpha * (target - self.arm_configs)
             self.env.step(dt)
-        self.arm_configs = target
+
 
     def reset(self):
         """

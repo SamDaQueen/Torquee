@@ -2,20 +2,6 @@ import swift
 
 from puma560 import Puma560
 
-<<<<<<< HEAD
-# Create a puma in the default zero pose
-puma = rtb.models.Puma560()
-
-pumaDH = rtb.models.DH.Puma560()
-# puma.qz = np.array( [ 2.6486,     -2.38986263,  2.98768081,  0.76815354,  0.86615253,  2.5455596 ])
-puma.q = puma.qz
-
-print(f'Puma: {puma}')
-
-env.add(puma, robot_alpha=True, collision_alpha=False)
-=======
->>>>>>> 84e19fc0063bec5e18b1f5d904e538970d1a8c9f
-
 class Simulator:
     def __init__(self):
         """
