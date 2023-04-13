@@ -14,7 +14,7 @@ link_radius = 0.05
 sphere_centers = np.array([
     [0.5, 0, 0],
     [0, 0.5, 0],
-    [0, 0, 0.5]
+    [0, 0, 0.83],
     colliding_sphere
 ])
 
