@@ -21,27 +21,42 @@ def equal(q, qp, tolerance=1e-3):
     return np.allclose(q, qp, atol=tolerance)
 
 
-def check_collision(robot, q, link_radius, sphere_centers, sphere_radii, resolution=11):
-    x1 = np.zeros(3)
-    T2 = robot.fkine(q)[:3, :3]
-    x2 = T2.t
-    T3 = T2 @ robot.fkine(q, 3)[:3, :3]
-    x3 = T3.t
+def check_collision(robot, q, link_radius, sphere_centers, sphere_radii, resolution=5):
+    links = robot.links
+    in_collision = False
+    fkine = robot.fkine_all(q)
 
+    # Define the positions of interest for each link
+    positions = [np.linspace(fkine[i].t, fkine[i + 1].t, resolution) for i in [0, 1, 2, 3]]
+
+    # Check for collisions at each position
+    for i, link_pos in enumerate(positions):
+        for j, pos in enumerate(link_pos):
+            for k, sphere_center in enumerate(sphere_centers):
+                dist = np.linalg.norm(pos - sphere_center)
+                if dist <= (link_radius + sphere_radii[k]):
+                    print("Collision detected at link {} position {} with sphere {}!".format(i, j, k))
+                    in_collision = True
+                    return in_collision
+
+    return in_collision
+
+
+def check_edge(robot, q_start, q_end, link_radius, sphere_centers, sphere_radii, resolution=5):
     if resolution is None:
         resolution = 11
-    ticks = np.linspace(0, 1, resolution)  # 11 evenly spaced points between 0 and 1
+
+    ticks = np.linspace(0, 1, resolution)
     n = len(ticks)
-    x12 = np.tile(x1, (n, 1)) + np.tile(x2 - x1, (n, 1)) * np.tile(ticks, (3, 1)).T
-    x23 = np.tile(x2, (n, 1)) + np.tile(x3 - x2, (n, 1)) * np.tile(ticks, (3, 1)).T
-    points = np.concatenate([x12, x23], axis=0)
+
+    # configs -> n configurations between q_start and q_end
+    configs = np.tile(q_start, (n, 1)) + np.tile((q_end - q_start), (n, 1)) * np.tile(ticks.reshape(n, 1),
+                                                                                      (1, len(q_start)))
 
     in_collision = False
-    for i in range(sphere_centers.shape[0]):  # for each sphere
-        if np.any(np.sum((points - np.tile(sphere_centers[i, :], (points.shape[0], 1)).T) ** 2, axis=0) < (
-                link_radius + sphere_radii[i]) ** 2):
+    for i in range(n):
+        if check_collision(robot, configs[i, :], link_radius, sphere_centers, sphere_radii):
             in_collision = True
             break
 
     return in_collision
-

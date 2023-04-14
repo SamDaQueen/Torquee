@@ -82,7 +82,7 @@ class RobotCSpace:
         # convert neighbor coordinates to joint angles
         valid_neighbors = [self.convert_cell_to_config(neighbor) for neighbor in valid_neighbors]
 
-        return valid_neighbors
+        return np.array(valid_neighbors)
 
     def is_valid(self, config):
         """
@@ -93,7 +93,6 @@ class RobotCSpace:
         """
         index = self.convert_config_to_cell(config)
         return all(0 <= i < n for i, n in zip(index, self.grid.shape))
-
 
 
 if __name__ == '__main__':
