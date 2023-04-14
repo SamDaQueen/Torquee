@@ -11,7 +11,7 @@ class Puma560:
         :param orig_q: Set the initial arm configuration
         """
         self.puma = rtb.models.Puma560()
-        self.arm_configs = orig_q or self.puma.qz  # default to zero pose
+        self.arm_configs = orig_q if orig_q is not None else self.puma.qz  # default to zero pose
         self.env = env
         self.puma.q = self.arm_configs
         self.env.add(self.puma, robot_alpha=True, collision_alpha=False)
@@ -32,6 +32,7 @@ class Puma560:
             self.puma.q = target
             self.env.step(dt)
         self.arm_configs = target
+
 
     def reset(self):
         """

@@ -1,16 +1,18 @@
 import swift
 
-from src.puma560 import Puma560
-
+from puma560 import Puma560
+from a_star_search import AStarSearch
+import roboticstoolbox as rtb
+import numpy as np
 
 class Simulator:
-    def __init__(self):
+    def __init__(self, start):
         """
         The __init__ function sets up the environment and robot, and initializes a few variables.
         """
         self.env = swift.Swift()
         self.env.launch(realtime=True)
-        self.robot = Puma560(self.env)
+        self.robot = Puma560(self.env, start)
         self.dt = 0.05
         self.interp_time = 5
         self.wait_time = 2
@@ -45,5 +47,11 @@ class Simulator:
 
 
 if __name__ == '__main__':
-    simulator = Simulator()
-    simulator.run(dt=0.1, interp_time=1, wait_time=0.01)
+    robot = rtb.models.DH.Puma560()
+    start = robot.q
+
+    simulator = Simulator(start)
+    search_class = AStarSearch(robot, [])
+    path = search_class.run(np.array([0.00000,30.00000,0.00000,20.00000,30.00000,30.00000]))
+    # print(path)
+    simulator.run(poses=path, dt=0.1, interp_time=1, wait_time=0.01)

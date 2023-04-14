@@ -95,6 +95,7 @@ class RobotCSpace:
         return all(0 <= i < n for i, n in zip(index, self.grid.shape))
 
 
+
 if __name__ == '__main__':
     q_min = [-175, -90, -150, -190, -120, -360]
     q_max = [175, 85, 60, 190, 120, 360]
