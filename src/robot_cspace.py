@@ -12,28 +12,6 @@ class RobotCSpace:
         self.joint_limits = joint_limits
         self.step_size = step_size
         self.num_cells = [int(np.ceil((limit[1] - limit[0]) / step_size)) + 1 for limit in joint_limits]
-        self.grid = np.ones(self.num_cells, dtype=bool)
-
-    def get_grid(self):
-        """
-        Returns the grid of the configuration space
-
-        :return: the grid
-        """
-        return self.grid
-
-    def set_config_value(self, config, value):
-        """
-        Sets the value of a configuration in the grid
-
-        :param config: The configuration in joint angles
-        :param value: True or False
-        """
-        index = self.convert_config_to_cell(config)
-        # return if config is invalid
-        if not self.is_valid(config):
-            return
-        self.grid[index] = value
 
     def convert_config_to_cell(self, config):
         """
@@ -74,9 +52,7 @@ class RobotCSpace:
             for offset in [-1, 0, 1]:
                 neighbor_index = tuple(coord[j] + (offset if i == j else 0) for j in range(6))
 
-                if neighbor_index != tuple(coord) and all(
-                        0 <= neighbor_index[j] < self.num_cells[j] for j in range(6)) and \
-                        self.grid[neighbor_index]:
+                if neighbor_index != tuple(coord) and self.is_valid(self.convert_cell_to_config(neighbor_index)):
                     valid_neighbors.append(neighbor_index)
 
         # convert neighbor coordinates to joint angles
@@ -91,8 +67,8 @@ class RobotCSpace:
         :param config:  The configuration in joint angles
         :return:    True if valid, False otherwise
         """
-        index = self.convert_config_to_cell(config)
-        return all(0 <= i < n for i, n in zip(index, self.grid.shape))
+        return all(self.joint_limits[i][0] <= config[i] <= self.joint_limits[i][1] for i in range(len(
+            self.joint_limits)))
 
 
 if __name__ == '__main__':
