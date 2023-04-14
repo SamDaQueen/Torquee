@@ -25,7 +25,7 @@ class Simulator:
         zero_orientation = p.getQuaternionFromEuler([0, 0, 0])
         planeId = p.loadURDF("plane.urdf")
         #sphereId = p.loadURDF("sphere.urdf", [0, .5, .5], zero_orientation, globalScaling=10)
-        sphereVisualId = p.createVisualShape(p.GEOM_BOX)
+        sphereVisualId = p.createVisualShape(p.GEOM_SPHERE)
         sphereId = p.createMultiBody(baseVisualShapeIndex=sphereVisualId, basePosition=[0, .5, 0.5])
         robotId = p.loadURDF("\\franka_panda\panda.urdf", [0, 0, 0], zero_orientation, useFixedBase=True) #flags=p.URDF_USE_SELF_COLLISION
 
