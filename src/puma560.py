@@ -16,8 +16,8 @@ class Puma560:
         self.puma.q = self.arm_configs
         self.env.add(self.puma, robot_alpha=True, collision_alpha=False)
 
-    def move_arm(self, target, dt, interp_time, wait_time):
-        """
+    def move_arm(self, target, dt, interp_time, wait_time, payload=0):
+"""
         The move_arm function moves the arm to the target pose.
 
         :param target: The target pose
@@ -32,7 +32,6 @@ class Puma560:
             self.puma.q = target
             self.env.step(dt)
         self.arm_configs = target
-
 
     def reset(self):
         """
