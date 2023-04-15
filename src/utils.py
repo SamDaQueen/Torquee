@@ -1,5 +1,9 @@
 import numpy as np
 
+PUMA_TORQUE_LIMITS = np.array([97.6, 186.4, 89.4, 24.2, 20.1, 21.3])
+PUMA_VELOCITY_LIMITS = np.array([8, 10, 10, 5, 5, 5])
+PUMA_ACCELERATION_LIMITS = np.array([10, 12, 12, 8, 8, 8])
+
 
 def sample_spherical(coordinates, npoints, ndim=3, scale=0.05):
     coordinates = np.array(coordinates)
@@ -11,9 +15,13 @@ def sample_spherical(coordinates, npoints, ndim=3, scale=0.05):
     return vec
 
 
+def torque(robot, q, qd, qdd):
+    return robot.rne(q, qd, qdd)
+
+
 def torque_cost(robot, q, qd, qdd):
-    tau = robot.rne(q, qd, qdd)
-    cost = np.sum(np.sqrt(np.square(tau))) / len(q)
+    tau = torque(robot, q, qd, qdd)
+    cost = np.sqrt(np.sum(np.square(tau))) / np.sqrt(np.sum(np.square(PUMA_TORQUE_LIMITS)))
     return cost
 
 
