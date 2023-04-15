@@ -40,6 +40,12 @@ class Node:
             node = node.parent
         return list(reversed(path))
 
+    def __lt__(self, other):
+        """
+        :return: True if the total cost of the node is less than the other node
+        """
+        return self.f() < other.f()
+
 
 def distance(q1, q2):
     """
@@ -84,7 +90,7 @@ def a_star(robot, q_start, q_goal):
     velocities = {tuple(q_start): 0}
     heapq.heappush(open_list, (0, Node(q_start)))
 
-    dt = 0.1
+    dt = .2
 
     while open_list:
         _, current = heapq.heappop(open_list)
@@ -94,6 +100,7 @@ def a_star(robot, q_start, q_goal):
 
         closed_list.append(tuple(current.q))
         neighbors = cspace.find_neighbors(current.q)
+        print(current.q)
 
         for q_next in neighbors:
             if tuple(q_next) in closed_list:
