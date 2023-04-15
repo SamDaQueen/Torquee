@@ -33,30 +33,39 @@ class RobotCSpace:
         # Convert 6D coordinate to cell index
         return [coord * self.step_size + limit[0] for coord, limit in zip(cell, self.joint_limits)]
 
-    def find_neighbors(self, config):
+    def find_neighbors(self, coord):
         """
         Finds the neighbors of a configuration in the grid
 
-        :param config:  The configuration in joint angles
+        :param coord:  The configuration in grid cell coordinates
         :return:    A list of neighbors in joint angles
         """
         # return if config is invalid
-        if not self.is_valid(config):
-            return []
+        if not self.is_valid(self.convert_cell_to_config(coord)):
+            raise ValueError("Invalid input")
 
-        coord = self.convert_config_to_cell(config)
+        lower = self.convert_config_to_cell([t[0] for t in self.joint_limits])
+        upper = self.convert_config_to_cell([t[1] for t in self.joint_limits])
 
         # generate list of possible neighbor coordinates
         valid_neighbors = []
-        for i in range(6):
-            for offset in [-1, 0, 1]:
-                neighbor_index = tuple(coord[j] + (offset if i == j else 0) for j in range(6))
-
-                if neighbor_index != tuple(coord) and self.is_valid(self.convert_cell_to_config(neighbor_index)):
-                    valid_neighbors.append(neighbor_index)
-
-        # convert neighbor coordinates to joint angles
-        valid_neighbors = [self.convert_cell_to_config(neighbor) for neighbor in valid_neighbors]
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                for dz in [-1, 0, 1]:
+                    for da in [-1, 0, 1]:
+                        for db in [-1, 0, 1]:
+                            for dc in [-1, 0, 1]:
+                                if dx == dy == dz == da == db == dc == 0:
+                                    continue
+                                neighbor_coord = [coord[0] + dx, coord[1] + dy, coord[2] + dz, coord[3] + da,
+                                                  coord[4] + db, coord[5] + dc]
+                                for j in range(6):
+                                    if neighbor_coord[j] < lower[j]:
+                                        neighbor_coord[j] += upper[j] - lower[j]
+                                    elif neighbor_coord[j] > upper[j]:
+                                        neighbor_coord[j] -= upper[j] - lower[j]
+                                if self.is_valid(self.convert_cell_to_config(tuple(neighbor_coord))):
+                                    valid_neighbors.append(neighbor_coord)
 
         return np.array(valid_neighbors)
 
@@ -72,13 +81,14 @@ class RobotCSpace:
 
 
 if __name__ == '__main__':
-    q_min = [-175, -90, -150, -190, -120, -360]
-    q_max = [175, 85, 60, 190, 120, 360]
-    # joint_limits = [(0, 30)] * 6
-    joint_limits = list(zip(q_min, q_max))
+    # joint_limits = list(zip(*rtb.models.DH.Puma560().qlim))
+    # print(joint_limits)
+    # step_size = np.deg2rad(10)
 
-    step_size = 10
+    joint_limits = [(-30, 30)] * 6
+    step_size = 5
+
     config_space = RobotCSpace(joint_limits, step_size)
 
-    neighbors = config_space.find_neighbors(np.array([0, 0, 0, 0, 0, 0]))
+    neighbors = config_space.find_neighbors(np.array([5, 0, 2, 1, 4, 6]))
     print(neighbors)

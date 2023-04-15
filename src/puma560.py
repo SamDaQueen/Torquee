@@ -6,7 +6,6 @@ class Puma560:
     def __init__(self, env, orig_q=None):
         """
         The __init__ function sets up the robot and initializes a few variables.
-
         :param env: The simulator environment
         :param orig_q: Set the initial arm configuration
         """
@@ -16,10 +15,9 @@ class Puma560:
         self.puma.q = self.arm_configs
         self.env.add(self.puma, robot_alpha=True, collision_alpha=False)
 
-    def move_arm(self, target, dt, interp_time, wait_time, payload=0):
-"""
+    def move_arm(self, target, dt, interp_time, wait_time):
+        """
         The move_arm function moves the arm to the target pose.
-
         :param target: The target pose
         :param dt: The time step
         :param interp_time: The interpolation time
