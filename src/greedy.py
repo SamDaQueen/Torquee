@@ -41,7 +41,12 @@ class GreedyNode:
         return self.h < other.h
 
     def __str__(self):
-        return f'{self.q}'
+        return f'[{self.q} - {self.h}]'
+
+
+def distance_cost(robot, q1, q2):
+    max_dist = np.linalg.norm(robot.qlim[1, :] - robot.qlim[0, :])
+    return distance(q1, q2) / max_dist
 
 
 def distance(q1, q2):
@@ -52,6 +57,7 @@ def distance(q1, q2):
     :return: L2 distance between the two configurations
     """
     return np.linalg.norm(np.array(q1) - np.array(q2))
+
 
 def greedy(robot, q_start, q_goal, cspace):
     """
@@ -80,10 +86,8 @@ def greedy(robot, q_start, q_goal, cspace):
     current = GreedyNode(q_start)
     dt = 1
 
-    print(f'Goal: {q_goal}')
-    print(f'Start: {q_start}')
-
     while current is not None and not equal(current.q, q_goal):
+        print(current)
         closed_list.add(tuple(current.q))
         neighbors = cspace.find_neighbors(current.q)
         best_node, best_heuristic = None, math.inf
@@ -117,8 +121,9 @@ def greedy(robot, q_start, q_goal, cspace):
             if tuple(q_next) not in velocities:
                 velocities[tuple(q_next)] = qd
 
-            h = distance(cspace.convert_cell_to_config(q_next), cspace.convert_cell_to_config(q_goal)) + \
-                torque_cost(robot, current.q, qd, qdd)
+            h = 90 * distance_cost(robot, cspace.convert_cell_to_config(q_next),
+                                   cspace.convert_cell_to_config(q_goal)) + \
+                10 * torque_cost(robot, current.q, qd, qdd)
 
             node = GreedyNode(q_next, current, h)
 
