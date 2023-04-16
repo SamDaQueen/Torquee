@@ -11,9 +11,27 @@ def sample_spherical(coordinates, npoints, ndim=3, scale=0.05):
     return vec
 
 
+def rand_puma_config():
+    q_min = np.array([[-175, -90, -150, -190, -120, -360]])
+    q_max = np.array([[175, 85, 60, 190, 120, 360]])
+    delta = q_max[0] - q_min[0]
+    rand = np.random.rand(6) * delta
+    config = rand + q_min
+    return np.transpose(config)
+
+
 def torque_cost(robot, q, qd, qdd):
     tau = robot.rne(q, qd, qdd)
     cost = np.sum(np.sqrt(np.square(tau))) / len(q)
+    return cost
+
+
+def torque_cost_prm(q, robot, qd=np.zeros([6, 1]), qdd=np.zeros([6, 1])):
+    q = np.deg2rad(q)
+    qd = np.deg2rad(qd)
+    qdd = np.deg2rad(qdd)
+    tau = robot.rne(q, qd, qdd)
+    cost = np.sum(np.square(tau))
     return cost
 
 
@@ -21,7 +39,7 @@ def equal(q, qp, tolerance=1e-3):
     return np.allclose(q, qp, atol=tolerance)
 
 
-def check_collision(robot, q, link_radius, sphere_centers, sphere_radii, resolution=5):
+def check_collision(robot, q, sphere_centers, sphere_radii, link_radius=0.05, resolution=5):
     links = robot.links
     in_collision = False
     fkine = robot.fkine_all(q)
@@ -42,12 +60,14 @@ def check_collision(robot, q, link_radius, sphere_centers, sphere_radii, resolut
     return in_collision
 
 
-def check_edge(robot, q_start, q_end, link_radius, sphere_centers, sphere_radii, resolution=5):
+def check_edge(robot, q_start, q_end, sphere_centers, sphere_radii, link_radius=0.05, resolution=5):
     if resolution is None:
         resolution = 11
 
     ticks = np.linspace(0, 1, resolution)
     n = len(ticks)
+    q_start = q_start[:, 0]
+    q_end = q_end[:, 0]
 
     # configs -> n configurations between q_start and q_end
     configs = np.tile(q_start, (n, 1)) + np.tile((q_end - q_start), (n, 1)) * np.tile(ticks.reshape(n, 1),
@@ -55,7 +75,7 @@ def check_edge(robot, q_start, q_end, link_radius, sphere_centers, sphere_radii,
 
     in_collision = False
     for i in range(n):
-        if check_collision(robot, configs[i, :], link_radius, sphere_centers, sphere_radii):
+        if check_collision(robot, configs[i, :], sphere_centers, sphere_radii, link_radius=link_radius):
             in_collision = True
             break
 

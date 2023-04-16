@@ -1,7 +1,7 @@
 import numpy as np
 from roboticstoolbox import models
 
-from utils import check_collision, check_edge
+import utils
 
 # Define robot and obstacles
 robot = models.DH.Puma560()
@@ -28,10 +28,14 @@ sphere_radii = np.array([0.1, 0.1, 0.1])
 # q = np.random.uniform(q_min, q_max, size=6)
 
 # Check for collisions
-in_collision = check_collision(robot, robot.q, link_radius, sphere_centers, sphere_radii)
-in_collision_edge = check_edge(robot, robot.q, robot.qz, link_radius, sphere_centers, sphere_radii)
+#in_collision = check_collision(robot, robot.q, sphere_centers, sphere_radii)
+#in_collision_edge = check_edge(robot, robot.q, robot.qz, sphere_centers, sphere_radii)
 
-if in_collision or in_collision_edge:
-    print("Robot is in collision!")
-else:
-    print("Robot is collision-free.")
+#if in_collision or in_collision_edge:
+#    print("Robot is in collision!")
+#else:
+#    print("Robot is collision-free.")
+
+if __name__ == '__main__':
+    for i in range(5):
+        print(utils.rand_puma_config())
