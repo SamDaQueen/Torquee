@@ -4,13 +4,11 @@ import swift
 
 from genetic import GeneticAlgorithm
 from puma560 import Puma560
-<<<<<<< HEAD
-=======
+
 from a_star_sam import a_star
 from greedy import greedy
 from robot_cspace import RobotCSpace
 from a_star_search import a_star_graph_search
->>>>>>> 85607a8 (finished a*)
 
 
 class Simulator:

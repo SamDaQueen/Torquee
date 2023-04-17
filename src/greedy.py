@@ -2,7 +2,9 @@ import math
 
 import numpy as np
 
-from utils import torque, torque_cost, equal, PUMA_TORQUE_LIMITS, \
+from robot_cspace import RobotCSpace
+from utils import torque, torque_cost, distance, distance_cost, \
+    equal, PUMA_TORQUE_LIMITS, \
     PUMA_ACCELERATION_LIMITS, PUMA_VELOCITY_LIMITS
 
 
@@ -42,22 +44,7 @@ class GreedyNode:
         return f'[{self.q} - {self.h}]'
 
 
-def distance_cost(robot, q1, q2):
-    max_dist = np.linalg.norm(robot.qlim[1, :] - robot.qlim[0, :])
-    return distance(q1, q2) / max_dist
-
-
-def distance(q1, q2):
-    """
-    Find the L2 distance between two configurations
-    :param q1: configuration 1
-    :param q2: configuration 2
-    :return: L2 distance between the two configurations
-    """
-    return np.linalg.norm(np.array(q1) - np.array(q2))
-
-
-def greedy(robot, q_start, q_goal, cspace):
+def greedy(robot, q_start, q_goal, cspace, dt=1):
     """
     Find a path from q_start to q_goal using A* search
 
@@ -82,25 +69,27 @@ def greedy(robot, q_start, q_goal, cspace):
     velocities = {tuple(q_start): 0}
 
     current = GreedyNode(q_start)
-    dt = 1
 
     while current is not None and not equal(current.q, q_goal):
-        print(current)
         closed_list.add(tuple(current.q))
         neighbors = cspace.find_neighbors(current.q)
         best_node, best_heuristic = None, math.inf
 
-        for q_next in neighbors:
+        distances = np.array([distance(cspace.convert_cell_to_config(q_next),
+                                       cspace.convert_cell_to_config(q_goal)) for q_next in neighbors])
+        candidate_indices = np.argsort(distances)[:50]
+        candidates = [neighbors[i] for i in candidate_indices]
+
+        current_config = np.array(cspace.convert_cell_to_config(current.q))
+
+        for q_next in candidates:
             if tuple(q_next) in closed_list:
                 continue
 
-            if np.any(np.greater(
-                    np.abs(cspace.convert_cell_to_config(q_next)), robot.qlim[1, :])
-            ):
-                continue
-
             q_next_config = np.array(cspace.convert_cell_to_config(q_next))
-            current_config = np.array(cspace.convert_cell_to_config(current.q))
+
+            if np.any(np.greater(np.abs(q_next_config), robot.qlim[1, :])):
+                continue
 
             qd = (q_next_config - current_config) / dt
             qdd = (qd - velocities[tuple(current.q)]) / dt
@@ -112,16 +101,19 @@ def greedy(robot, q_start, q_goal, cspace):
             qdd = np.minimum(np.abs(qdd), PUMA_ACCELERATION_LIMITS) * qdd_sign
 
             if np.any(np.greater_equal(
-                    np.abs(torque(robot, q_next, qd, qdd)),
+                    np.abs(torque(robot, q_next_config, qd, qdd)),
                     PUMA_TORQUE_LIMITS)):
                 continue
 
             if tuple(q_next) not in velocities:
                 velocities[tuple(q_next)] = qd
 
-            h = .9 * distance_cost(robot, cspace.convert_cell_to_config(q_next),
-                                   cspace.convert_cell_to_config(q_goal)) + \
-                .1 * torque_cost(robot, current.q, qd, qdd)
+            # h = .9 * distance_cost(robot, cspace.convert_cell_to_config(q_next),
+            #                        cspace.convert_cell_to_config(q_goal)) + \
+            #     .1 * torque_cost(robot, current.q, qd, qdd)
+            h = distance_cost(robot, q_next_config, cspace.convert_cell_to_config(q_goal)) + \
+                torque_cost(robot, q_next_config, qd, qdd)
+            # h = torque_cost(robot, q_next_config, qd, qdd)
 
             node = GreedyNode(q_next, current, h)
 

@@ -36,6 +36,7 @@ def a_star_graph_search(robot, start, target, cspace, dt=1):
 
     while frontier:
         current_cell = frontier.pop()
+        print(current_cell)
 
         if current_cell in seen:
             continue
@@ -64,11 +65,11 @@ def a_star_graph_search(robot, start, target, cspace, dt=1):
             qdd = np.minimum(np.abs(qdd), PUMA_ACCELERATION_LIMITS) * qdd_sign
 
             # 90
-            heuristic = 1.5 * (0.95 * distance_cost(robot, successor_config, target) +
+            heuristic = 1.8 * (0.95 * distance_cost(robot, successor_config, target) +
                                0.05 * torque_cost(robot, successor_config, qd, qdd))
 
-            cost = distance_cost(robot, successor_config, current_config) + 0
-            # torque_cost(robot, successor_config, qdd, qdd)
+            cost = 0.95 * distance_cost(robot, successor_config, current_config) + \
+                 0.05 * torque_cost(robot, successor_config, qdd, qdd)
 
             frontier.push(
                 tuple(successor_cell),
