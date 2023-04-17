@@ -1,9 +1,7 @@
-import heapq
 import math
 
 import numpy as np
 
-from robot_cspace import RobotCSpace
 from utils import torque, torque_cost, equal, PUMA_TORQUE_LIMITS, \
     PUMA_ACCELERATION_LIMITS, PUMA_VELOCITY_LIMITS
 
@@ -121,9 +119,9 @@ def greedy(robot, q_start, q_goal, cspace):
             if tuple(q_next) not in velocities:
                 velocities[tuple(q_next)] = qd
 
-            h = 90 * distance_cost(robot, cspace.convert_cell_to_config(q_next),
+            h = .9 * distance_cost(robot, cspace.convert_cell_to_config(q_next),
                                    cspace.convert_cell_to_config(q_goal)) + \
-                10 * torque_cost(robot, current.q, qd, qdd)
+                .1 * torque_cost(robot, current.q, qd, qdd)
 
             node = GreedyNode(q_next, current, h)
 
