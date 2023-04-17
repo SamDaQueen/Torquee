@@ -85,3 +85,18 @@ def check_edge(robot, q_start, q_end, sphere_centers, sphere_radii, link_radius=
             break
 
     return in_collision
+
+
+def distance_cost(robot, q1, q2):
+    max_dist = np.linalg.norm(robot.qlim[1, :] - robot.qlim[0, :])
+    return distance(q1, q2) / max_dist
+
+
+def distance(q1, q2):
+    """
+    Find the L2 distance between two configurations
+    :param q1: configuration 1
+    :param q2: configuration 2
+    :return: L2 distance between the two configurations
+    """
+    return np.linalg.norm(np.array(q1) - np.array(q2))
