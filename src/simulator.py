@@ -3,6 +3,7 @@ import roboticstoolbox as rtb
 import swift
 
 from genetic import GeneticAlgorithm
+import time
 from puma560 import Puma560
 
 from a_star_sam import a_star
@@ -82,8 +83,18 @@ if __name__ == '__main__':
     # path_cells = greedy(robot, start, target, cspace)
     # path_cells = a_star_graph_search(robot, start, target, cspace)
     # path = [np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells]
+    # target = np.array([2.6486, 0, -1.1416, 1.4, 0.8604, 2.6611])
+    # path_cells = greedy(robot, start, target, cspace)
+    # print(f"Running A* Search: {start} -> {target}")
 
+    # start_time = time.time()
+    # path_cells = a_star_graph_search(robot, start, target, cspace)
+    # end_time = time.time()
+
+    path = [np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells]
+
+    # print(f'Time taken: {round(end_time - start_time, 2)} seconds.')
     print(path)
 
     simulator = Simulator(start)
-    simulator.run(poses=path, dt=0.01, interp_time=1, wait_time=1)
+    simulator.run(poses=path, dt=0.01, interp_time=1, wait_time=0.01)

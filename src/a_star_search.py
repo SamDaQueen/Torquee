@@ -36,7 +36,6 @@ def a_star_graph_search(robot, start, target, cspace, dt=1):
 
     while frontier:
         current_cell = frontier.pop()
-        print(current_cell)
 
         if current_cell in seen:
             continue
