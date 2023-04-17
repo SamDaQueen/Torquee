@@ -66,16 +66,18 @@ if __name__ == '__main__':
     # cspace = RobotCSpace(joint_limits, step_size)
     #
     start = np.array([0, 0, 0, -1, 0, 0])
-    target = np.array([0, 0, 0, -1.5, 0, 0])
+    # target = np.array([0, 0, 0, -1.5, 0, 0])
+    target = np.array([2.6486, -1.80, -2.1416, 0.6743, 0.8604, 2.6611])
+
     # path_cells = greedy(robot, start, target, cspace)
     # path = [np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells]
 
     # Genetic
     step_size = np.deg2rad(10)
-    genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size)
+    genetic = GeneticAlgorithm(robot, 100, 100, 0.6, 0.01, step_size=step_size)
     path = genetic.run(start, target)
 
-    # target = np.array([2.6486, -1.80, -2.1416, 0.6743, 0.8604, 2.6611])
+    target = np.array([2.6486, -1.80, -2.1416, 0.6743, 0.8604, 2.6611])
     # # path_cells = greedy(robot, start, target, cspace)
     # path_cells = a_star_graph_search(robot, start, target, cspace)
     # path = [np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells]
