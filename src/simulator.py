@@ -4,6 +4,13 @@ import swift
 
 from genetic import GeneticAlgorithm
 from puma560 import Puma560
+<<<<<<< HEAD
+=======
+from a_star_sam import a_star
+from greedy import greedy
+from robot_cspace import RobotCSpace
+from a_star_search import a_star_graph_search
+>>>>>>> 85607a8 (finished a*)
 
 
 class Simulator:
@@ -70,6 +77,10 @@ if __name__ == '__main__':
     step_size = np.deg2rad(10)
     genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size)
     path = genetic.run(start, target)
+    # target = np.array([2.6486, -1.80, -2.1416, 0.6743, 0.8604, 2.6611])
+    # # path_cells = greedy(robot, start, target, cspace)
+    # path_cells = a_star_graph_search(robot, start, target, cspace)
+    # path = [np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells]
 
     print(path)
 
