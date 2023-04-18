@@ -14,8 +14,16 @@ def sample_spherical(coordinates, npoints, ndim=3, scale=0.05):
     vec += coordinates
     return vec
 
+
 def torque(robot, q, qd, qdd):
     return robot.rne(q, qd, qdd)
+
+
+def get_joint_limits():
+    q_min = np.array([-85, -40, -40, -40, -40, -40])
+    q_max = np.array([85, 40, 40, 40, 40, 40])
+    return list(zip(q_min, q_max))
+
 
 def rand_puma_config():
     q_min = np.array([-85, -40, -40, -40, -40, -40])
@@ -24,6 +32,7 @@ def rand_puma_config():
     rand = np.random.rand(6) * delta
     config = rand + q_min
     return config
+
 
 def torque_cost(robot, q, qd, qdd):
     tau = torque(robot, q, qd, qdd)
@@ -47,7 +56,7 @@ def equal(q, qp, tolerance=1e-3):
 def check_collision(robot, q, sphere_centers, sphere_radii, link_radius=0.05, resolution=5):
     if len(sphere_centers) == 0:
         return False
-    links = robot.links
+
     in_collision = False
     fkine = robot.fkine_all(q)
 
@@ -75,8 +84,9 @@ def check_edge(robot, q_start, q_end, sphere_centers, sphere_radii, link_radius=
     n = len(ticks)
 
     # configs -> n configurations between q_start and q_end
-    configs = np.tile(q_start, (n, 1)) + np.tile((q_end - q_start), (n, 1)) * np.tile(ticks.reshape(n, 1),
-                                                                                      (1, len(q_start)))
+    configs = np.tile(q_start, (n, 1)) + np.tile((np.array(q_end) - np.array(q_start)), (n, 1)) * np.tile(
+        ticks.reshape(n, 1),
+        (1, len(q_start)))
 
     in_collision = False
     for i in range(n):
@@ -99,3 +109,17 @@ def get_eval_sphere_centers():
 def get_eval_sphere_radii():
     sphere_radii = [.3, .1, .1, .5]
     return sphere_radii
+
+def distance_cost(robot, q1, q2):
+    max_dist = np.linalg.norm(robot.qlim[1, :] - robot.qlim[0, :])
+    return distance(q1, q2) / max_dist
+
+
+def distance(q1, q2):
+    """
+    Find the L2 distance between two configurations
+    :param q1: configuration 1
+    :param q2: configuration 2
+    :return: L2 distance between the two configurations
+    """
+    return np.linalg.norm(np.array(q1) - np.array(q2))

@@ -1,76 +1,108 @@
-import utils
-from robot_cspace import RobotCSpace
 import heapq
+
 import numpy as np
 
+from utils import distance_cost, torque_cost, PUMA_VELOCITY_LIMITS, PUMA_ACCELERATION_LIMITS, check_collision, \
+    check_edge
 
-class AStarSearch:
-    def __init__(self, robot, obstacles):
-        self.robot = robot
-        self.obstacles = obstacles
 
-    def heuristic(self, q, qd, qddot, target):
-        return utils.torque_cost(self.robot, q, qd, qddot) + np.linalg.norm(target - q) / len(q)
+class PriorityQueue:
 
-    def cost(self, start, q):
-        return np.linalg.norm(q - start)
+    def __init__(self):
+        self.heap = []
 
-    def run(self, target):
-        start = self.robot.q
+    def push(self, item, priority=0):
+        heapq.heappush(self.heap, (priority, item))
 
-        frontier = []
-        heapq.heappush(frontier, (0, start))
+    def pop(self):
+        _, item = heapq.heappop(self.heap)
+        return item
 
-        # Initialize the visited set
-        visited = set()
+    def __len__(self):
+        return len(self.heap)
 
-        # Initialize the parent dictionary
-        parent = {tuple(start): None}
-        velocities = {tuple(start): 0}
 
-        joint_limits = [(0, 360)] * 6
-        step_size = 10
+def a_star_graph_search(robot, start, target, cspace, dt=1):
+    frontier = PriorityQueue()
 
-        dt = 1
+    start_cell = tuple(cspace.convert_config_to_cell(start))
+    goal_cell = tuple(cspace.convert_config_to_cell(target))
 
-        cspace = RobotCSpace(joint_limits, step_size)
+    frontier.push(start_cell)
 
-        # Start the search
-        while len(frontier) > 0:
-            # Get the current node with the minimum cost
-            q_current = heapq.heappop(frontier)[1]
+    seen = set()
+    parent = {}
 
-            if tuple(q_current) in visited:
+    distance = {start_cell: 0}
+    velocities = {start_cell: 0}
+
+    sphere_centers = np.array([
+        [0.5, 0, 0],
+        [0, 0.5, 0],
+        [0, 0.5, 0.82]
+    ])
+
+    sphere_radii = np.array([0.1, 0.1, 0.1])
+
+    while frontier:
+        current_cell = frontier.pop()
+
+        if current_cell in seen:
+            continue
+
+        if current_cell == goal_cell:
+            return get_path(parent, start_cell, current_cell)
+
+        seen.add(current_cell)
+        successors = cspace.find_neighbors(current_cell)
+
+        current_config = np.array(cspace.convert_cell_to_config(current_cell))
+
+        for successor_cell in successors:
+            successor_config = np.array(cspace.convert_cell_to_config(successor_cell))
+
+            if check_collision(robot, successor_config, sphere_centers, sphere_radii) or \
+                    check_edge(robot, cspace.convert_cell_to_config(current_cell),
+                               cspace.convert_cell_to_config(successor_cell), sphere_centers, sphere_radii):
                 continue
 
-            # Check if we reached the goal
-            if utils.equal(q_current, target):
-                # Reconstruct the path
-                path = [q_current]
-                while not utils.equal(q_current, start):
-                    q_current = parent[tuple(q_current)]
-                    path.append(q_current)
-                path.reverse()
-                return path
+            print(successor_config)
 
-            # Add the current node to the visited set
-            visited.add(tuple(q_current))
+            if np.any(np.greater(np.abs(successor_config), robot.qlim[1, :])):
+                continue
 
-            q_neighbors = cspace.find_neighbors(q_current)
+            qd = (successor_config - current_config) / dt
+            qdd = (qd - velocities[tuple(current_cell)]) / dt
 
-            for q_neighbor in q_neighbors:
-                qd = (q_neighbor - q_current) / dt
-                qdd = (qd - velocities[tuple(q_current)]) / dt
-                heapq.heappush(frontier, (
-                    self.cost(start, q_neighbor) + self.heuristic(q_neighbor, qd, qdd, target),
-                    q_neighbor
-                ))
+            qd_sign = np.sign(qd)
+            qdd_sign = np.sign(qdd)
 
-                if tuple(q_neighbor) not in parent:
-                    parent[tuple(q_neighbor)] = q_current
+            qd = np.minimum(np.abs(qd), PUMA_VELOCITY_LIMITS) * qd_sign
+            qdd = np.minimum(np.abs(qdd), PUMA_ACCELERATION_LIMITS) * qdd_sign
 
-                if tuple(q_neighbor) not in velocities:
-                    velocities[tuple(q_neighbor)] = qd
+            # 90
+            heuristic = 3 * (0.95 * distance_cost(robot, successor_config, target) +
+                             0.05 * torque_cost(robot, successor_config, qd, qdd))
 
-        # If we reached here, the search failed
-        return None
+            cost = 0.95 * distance_cost(robot, successor_config, current_config) + \
+                   0.05 * torque_cost(robot, successor_config, qdd, qdd)
+
+            frontier.push(
+                tuple(successor_cell),
+                priority=distance[current_cell] + cost + heuristic
+            )
+            if (tuple(successor_cell) not in distance) \
+                    or (distance[tuple(current_cell)] + cost < distance[tuple(successor_cell)]):
+                distance[tuple(successor_cell)] = distance[tuple(current_cell)] + cost
+                parent[tuple(successor_cell)] = current_cell
+                velocities[tuple(successor_cell)] = qd
+
+    return None
+
+
+def get_path(parents, start, end):
+    reverse_path = [end]
+    while end != start:
+        end = parents[end]
+        reverse_path.append(end)
+    return list(reversed(reverse_path))
