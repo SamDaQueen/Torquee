@@ -1,7 +1,9 @@
 import heapq
+
 import numpy as np
 
-from utils import distance_cost, torque_cost, PUMA_VELOCITY_LIMITS, PUMA_ACCELERATION_LIMITS
+from utils import distance_cost, torque_cost, PUMA_VELOCITY_LIMITS, PUMA_ACCELERATION_LIMITS, check_collision, \
+    check_edge
 
 
 class PriorityQueue:
@@ -34,6 +36,14 @@ def a_star_graph_search(robot, start, target, cspace, dt=1):
     distance = {start_cell: 0}
     velocities = {start_cell: 0}
 
+    sphere_centers = np.array([
+        [0.5, 0, 0],
+        [0, 0.5, 0],
+        [0, 0.5, 0.82]
+    ])
+
+    sphere_radii = np.array([0.1, 0.1, 0.1])
+
     while frontier:
         current_cell = frontier.pop()
 
@@ -51,6 +61,13 @@ def a_star_graph_search(robot, start, target, cspace, dt=1):
         for successor_cell in successors:
             successor_config = np.array(cspace.convert_cell_to_config(successor_cell))
 
+            if check_collision(robot, successor_config, sphere_centers, sphere_radii) or \
+                    check_edge(robot, cspace.convert_cell_to_config(current_cell),
+                               cspace.convert_cell_to_config(successor_cell), sphere_centers, sphere_radii):
+                continue
+
+            print(successor_config)
+
             if np.any(np.greater(np.abs(successor_config), robot.qlim[1, :])):
                 continue
 
@@ -64,11 +81,11 @@ def a_star_graph_search(robot, start, target, cspace, dt=1):
             qdd = np.minimum(np.abs(qdd), PUMA_ACCELERATION_LIMITS) * qdd_sign
 
             # 90
-            heuristic = 1.8 * (0.95 * distance_cost(robot, successor_config, target) +
-                               0.05 * torque_cost(robot, successor_config, qd, qdd))
+            heuristic = 3 * (0.95 * distance_cost(robot, successor_config, target) +
+                             0.05 * torque_cost(robot, successor_config, qd, qdd))
 
             cost = 0.95 * distance_cost(robot, successor_config, current_config) + \
-                 0.05 * torque_cost(robot, successor_config, qdd, qdd)
+                   0.05 * torque_cost(robot, successor_config, qdd, qdd)
 
             frontier.push(
                 tuple(successor_cell),

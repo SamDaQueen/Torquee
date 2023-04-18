@@ -1,15 +1,13 @@
+import time
+
 import numpy as np
 import roboticstoolbox as rtb
 import swift
 
-from genetic import GeneticAlgorithm
-import time
 from puma560 import Puma560
-
-from a_star_sam import a_star
-from greedy import greedy
 from robot_cspace import RobotCSpace
-from a_star_search import a_star_graph_search
+from src.greedy import greedy
+from utils import get_joint_limits
 
 
 class Simulator:
@@ -55,45 +53,28 @@ class Simulator:
 
 if __name__ == '__main__':
     robot = rtb.models.DH.Puma560()
-    joint_limits = list(zip(*robot.qlim))
+    joint_limits = np.deg2rad(get_joint_limits())
     step_size = np.deg2rad(10)
     cspace = RobotCSpace(joint_limits, step_size)
 
-    # Joint limits: [[-2.7925268  -1.91986218 -2.35619449 -4.64257581 -1.74532925 -4.64257581],
-    #               [ 2.7925268   1.91986218  2.35619449  4.64257581  1.74532925  4.64257581]]
+    start = np.array([0, 0, 0, 0, 0, 0])
+    target = np.array(np.deg2rad([85, 40, 40, 40, 40, 40]))
 
+    start_time = time.time()
     # A-star
-    # path = a_star(robot, np.array([0, 0, 0, -1, 0, 0]), np.array([0, 0, 0, -1, 0, 1]))
+    # path_cells = a_star_graph_search(robot, start, target, cspace)
 
     # Greedy
-    # joint_limits = list(zip(*robot.qlim))
-    # step_size = np.deg2rad(10)
-    # cspace = RobotCSpace(joint_limits, step_size)
-    #
-    start = np.array([0, 0, 0, -1, 0, 0])
-    target = np.array([0, 0, 0, -1.5, 0, 0])
-    # path_cells = greedy(robot, start, target, cspace)
-    # path = [np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells]
+    path_cells = greedy(robot, start, target, cspace)
 
     # Genetic
-    step_size = np.deg2rad(10)
-    genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size)
-    path_cells = genetic.run(start, target)
-    target = np.array([2.6486, -1.80, -2.1416, 0.6743, 0.8604, 2.6611])
-    # path_cells = greedy(robot, start, target, cspace)
-    # path_cells = a_star_graph_search(robot, start, target, cspace)
-    # path = [np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells]
-    # target = np.array([2.6486, 0, -1.1416, 1.4, 0.8604, 2.6611])
-    # path_cells = greedy(robot, start, target, cspace)
-    # print(f"Running A* Search: {start} -> {target}")
-
-    # start_time = time.time()
-    # path_cells = a_star_graph_search(robot, start, target, cspace)
-    # end_time = time.time()
+    # genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size)
+    # path_cells = genetic.run(start, target)
+    end_time = time.time()
 
     path = [np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells]
 
-    # print(f'Time taken: {round(end_time - start_time, 2)} seconds.')
+    print(f'Time taken: {round(end_time - start_time, 2)} seconds.')
     print(path)
 
     simulator = Simulator(start)

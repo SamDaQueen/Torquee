@@ -1,7 +1,8 @@
 import numpy as np
 
 from greedy import distance_cost
-from utils import torque_cost, PUMA_VELOCITY_LIMITS, PUMA_ACCELERATION_LIMITS, torque, PUMA_TORQUE_LIMITS, equal
+from utils import torque_cost, PUMA_VELOCITY_LIMITS, PUMA_ACCELERATION_LIMITS, torque, PUMA_TORQUE_LIMITS, equal, \
+    check_collision, check_edge
 
 
 class GeneticAlgorithm:
@@ -15,7 +16,6 @@ class GeneticAlgorithm:
         self.joint_limits = list(zip(*robot.qlim))
         self.dt = dt
         self.step_size = step_size
-        self.fitness_scores = None
 
     def run(self, q_start, q_goal):
 
@@ -29,7 +29,7 @@ class GeneticAlgorithm:
             fitness_scores = [self.fitness_function(individual) for individual in population]
 
             # Select parents for crossover
-            parents = self.selection_method(population, self.fitness_scores)
+            parents = self.selection_method(population, fitness_scores)
 
             # Perform crossover to generate new offspring
             offspring = []
@@ -49,7 +49,7 @@ class GeneticAlgorithm:
             combined_population = population + offspring
 
             # Select the best individuals to form the next generation
-            population = self.selection_method(combined_population, self.fitness_scores + offspring_fitness_scores)
+            population = self.selection_method(combined_population, fitness_scores + offspring_fitness_scores)
             self.velocities = {tuple(q_start): 0}
 
         # Return the best solution found
@@ -57,22 +57,34 @@ class GeneticAlgorithm:
 
     def _create_candidate(self, q_current, q_goal, last_vel):
         beta = 0.1
-        # Move towards q_goal with probability beta
-        if np.random.rand() < beta:
-            q_next = self.step_size * (q_goal - q_current) + q_current
+        sphere_centers = np.array([
+            [0.5, 0, 0],
+            [0, 0.5, 0],
+            [0, 0.5, 0.82]
+        ])
+
+        sphere_radii = np.array([0.1, 0.1, 0.1])
+        while True:
+            # Move towards q_goal with probability beta
+            if np.random.rand() < beta:
+                q_next = self.step_size * (q_goal - q_current) + q_current
+                qd, qdd = self._calculate_qd_qdd(q_next, q_current, last_vel)
+                return q_next, qd, qdd
+            q_next = np.zeros_like(q_current, dtype=np.float64)
+            for i in range(len(q_current)):
+                q_range = self.joint_limits[i]
+                q_min = max(q_range[0], q_current[i] - self.step_size)
+                q_max = min(q_range[1], q_current[i] + self.step_size)
+                val = np.random.uniform(q_min, q_max)
+                q_next[i] = val
             qd, qdd = self._calculate_qd_qdd(q_next, q_current, last_vel)
-            return q_next, qd, qdd
-        q_next = np.zeros_like(q_current, dtype=np.float64)
-        for i in range(len(q_current)):
-            q_range = self.joint_limits[i]
-            q_min = max(q_range[0], q_current[i] - self.step_size)
-            q_max = min(q_range[1], q_current[i] + self.step_size)
-            val = np.random.uniform(q_min, q_max)
-            q_next[i] = val
-        qd, qdd = self._calculate_qd_qdd(q_next, q_current, last_vel)
+            if not check_collision(self.robot, q_next, sphere_centers, sphere_radii) or \
+                    check_edge(self.robot, q_current,
+                               q_next, sphere_centers, sphere_radii):
+                break
         return q_next, qd, qdd
 
-    def _initialize_population(self, q_start, q_goal, dt=1):
+    def _initialize_population(self, q_start, q_goal):
         # Generate a population of random paths from q_start to q_goal
         population = []
         for i in range(self.population_size):
@@ -141,7 +153,8 @@ class GeneticAlgorithm:
             if np.random.rand() < mutation_rate / 1.2:
                 continue
             if np.random.rand() < mutation_rate:
-                q, qd, qdd = self._create_candidate(mutated_q[-1], q_goal, velocities[-1])  # Generate a new random configuration
+                q, qd, qdd = self._create_candidate(mutated_q[-1], q_goal,
+                                                    velocities[-1])  # Generate a new random configuration
                 mutated_q.append(q)
                 velocities.append(qd)
                 accelerations.append(qdd)
@@ -184,6 +197,15 @@ class GeneticAlgorithm:
         return 90 * distance_cost(self.robot, q_current, q_next) + 10 * torque_cost(self.robot, q_current, qd, qdd)
 
     def fitness_function(self, individual):
+
+        sphere_centers = np.array([
+            [0.5, 0, 0],
+            [0, 0.5, 0],
+            [0, 0.5, 0.82]
+        ])
+
+        sphere_radii = np.array([0.1, 0.1, 0.1])
+
         total_cost = 0
 
         path, velocities, accelerations = individual
@@ -194,5 +216,9 @@ class GeneticAlgorithm:
             acceleration = accelerations[i + 1]
             cost = self.evaluation_function(q_current, q_next, velocity, acceleration)
             total_cost += cost
+
+            if check_collision(self.robot, q_next, sphere_centers, sphere_radii) or \
+                    check_edge(self.robot, q_current, q_next, sphere_centers, sphere_radii):
+                continue
 
         return 1 / total_cost

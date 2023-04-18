@@ -1,10 +1,10 @@
 import math
 
 import numpy as np
-from robot_cspace import RobotCSpace
+
 from utils import torque, torque_cost, distance, distance_cost, \
     equal, PUMA_TORQUE_LIMITS, \
-    PUMA_ACCELERATION_LIMITS, PUMA_VELOCITY_LIMITS
+    PUMA_ACCELERATION_LIMITS, PUMA_VELOCITY_LIMITS, check_collision, check_edge
 
 
 class GreedyNode:
@@ -69,6 +69,14 @@ def greedy(robot, q_start, q_goal, cspace, dt=1):
 
     current = GreedyNode(q_start)
 
+    sphere_centers = np.array([
+        [0.5, 0, 0],
+        [0, 0.5, 0],
+        [0, 0.5, 0.82]
+    ])
+
+    sphere_radii = np.array([0.1, 0.1, 0.1])
+
     while current is not None and not equal(current.q, q_goal):
         closed_list.add(tuple(current.q))
         neighbors = cspace.find_neighbors(current.q)
@@ -86,6 +94,10 @@ def greedy(robot, q_start, q_goal, cspace, dt=1):
                 continue
 
             q_next_config = np.array(cspace.convert_cell_to_config(q_next))
+
+            if check_collision(robot, q_next_config, sphere_centers, sphere_radii) or \
+                    check_edge(robot, current_config, q_next_config, sphere_centers, sphere_radii):
+                continue
 
             if np.any(np.greater(np.abs(q_next_config), robot.qlim[1, :])):
                 continue
