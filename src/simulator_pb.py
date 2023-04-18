@@ -4,6 +4,7 @@ import time
 import numpy as np
 import roboticstoolbox as rtb
 import PRM
+import RRT
 
 
 class Simulator:
@@ -24,7 +25,6 @@ class Simulator:
 
         # Useful inits
         zero_orientation = p.getQuaternionFromEuler([0, 0, 0])
-        robot = rtb.models.DH.Puma560()
         robot_urdf_object = rtb.models.URDF.Puma560()
         robot_urdf = str(robot_urdf_object.urdf_filepath)
         robot_urdf = robot_urdf[0:len(robot_urdf) - 6]
@@ -35,7 +35,7 @@ class Simulator:
         p.setGravity(0, 0, 0)
 
         # Load plane
-        planeId = p.loadURDF("plane.urdf")
+        p.loadURDF("plane.urdf")
         # Load robot
         self.robotId = p.loadURDF(robot_urdf, [0, 0, 0], zero_orientation, useFixedBase=True)
 
@@ -64,15 +64,14 @@ class Simulator:
         # for previous, target in zip(self.poses[:-1], self.poses[1:]):
         #    sum_of_torques += self.robot.move_arm(target, self.dt, self.interp_time, self.wait_time, self.payload)
 
-        # Move Robot Arm Section
-        posesT = np.transpose(poses)
+        # Move Robot Arm Section (poses = Nx6)
         cur_pose_goal = 0
         # Set first move
-        joint_target = posesT[:, cur_pose_goal]
+        joint_target = poses[cur_pose_goal, :]
         p.setJointMotorControlArray(self.robotId, range(6), controlMode=p.POSITION_CONTROL,
                                     targetPositions=joint_target)
         # Execute list of poses
-        while cur_pose_goal < len(poses):
+        while cur_pose_goal < poses.shape[0]:
             # Get the current robot state of all joint
             cur_joint_state = p.getJointStates(self.robotId, range(6))
             # Extract only position states
@@ -80,15 +79,23 @@ class Simulator:
             for i in range(6):
                 cur_pose[i] = cur_joint_state[i][0]
             # Check if position state has reached goal
-            if np.all(cur_pose[0] == joint_target):
+            math = np.abs(cur_pose - joint_target)
+            compare = math < 0.01
+            if np.all(compare):
                 # Set robot target to next target
-                cur_pose_goal += 1
-                joint_target = posesT[:, cur_pose_goal]
+                if cur_pose_goal < poses.shape[0]-1:
+                    cur_pose_goal += 1
+                joint_target = poses[cur_pose_goal, :]/180*2*np.pi
+                print("New------------------------------")
+                print(joint_target/2/np.pi*180)
+                print(cur_pose/2/np.pi*180)
+                print(math)
+                print(np.array([175, 85, 85, 85, 85, 85])/180*2*np.pi)
                 p.setJointMotorControlArray(self.robotId, range(6), controlMode=p.POSITION_CONTROL,
                                             targetPositions=joint_target)
             # Step simulation
             p.stepSimulation()
-            time.sleep(1. / 100.)
+            time.sleep(1. / 250.)
 
         # return sum_of_torques
 
@@ -106,17 +113,24 @@ class Simulator:
 
 
 if __name__ == '__main__':
-    q_start = np.zeros([6, 1])
-    q_goal = np.transpose(np.array([[175, 85, 60, 190, 120, 360]]))
+    q_start = np.zeros([6])
+    q_goal = np.transpose(np.array([175, 85, 60, 190, 120, 360]))
 
+    # Test sphere
     sphere_centers = np.array([
-        [0.5, 0, 0],
-        [0, 0.5, 0],
-        [0, 0, 0.5]
+        [.5, .5, .5]
     ])
-    sphere_radii = np.array([3, 3, 3])
+    sphere_radii = np.array([.1])
+
+    # Eval Spheres
 
     robot = rtb.models.DH.Puma560()
-    poses = PRM.prm_min_torque(q_start, q_goal, robot, samples=50)
+    poses = RRT.RRT(np.zeros([6]), np.transpose(np.array([-10, -10, -10, -10, -10, -10])),
+              robot)#, sphere_centers=sphere_centers, sphere_radii=sphere_radii)
+    if poses[0, 0] != np.inf:
+        Simulator().run(poses=poses, sphere_centers=sphere_centers, sphere_radii=sphere_radii)
+    else:
+        print("No solution found")
 
-    Simulator().run(poses=poses, sphere_centers=sphere_centers, sphere_radii=sphere_radii)
+    #poses = PRM.prm_min_torque(q_start, q_goal, robot, samples=100)
+

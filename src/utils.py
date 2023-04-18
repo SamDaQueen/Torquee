@@ -12,12 +12,12 @@ def sample_spherical(coordinates, npoints, ndim=3, scale=0.05):
 
 
 def rand_puma_config():
-    q_min = np.array([[-175, -90, -150, -190, -120, -360]])
-    q_max = np.array([[175, 85, 60, 190, 120, 360]])
-    delta = q_max[0] - q_min[0]
+    q_min = np.array([-85, -40, -40, -40, -40, -40])
+    q_max = np.array([85, 40, 40, 40, 40, 40])
+    delta = q_max - q_min
     rand = np.random.rand(6) * delta
     config = rand + q_min
-    return np.transpose(config)
+    return config
 
 
 def torque_cost(robot, q, qd, qdd):
@@ -40,6 +40,8 @@ def equal(q, qp, tolerance=1e-3):
 
 
 def check_collision(robot, q, sphere_centers, sphere_radii, link_radius=0.05, resolution=5):
+    if len(sphere_centers) == 0:
+        return False
     links = robot.links
     in_collision = False
     fkine = robot.fkine_all(q)
@@ -66,8 +68,6 @@ def check_edge(robot, q_start, q_end, sphere_centers, sphere_radii, link_radius=
 
     ticks = np.linspace(0, 1, resolution)
     n = len(ticks)
-    q_start = q_start[:, 0]
-    q_end = q_end[:, 0]
 
     # configs -> n configurations between q_start and q_end
     configs = np.tile(q_start, (n, 1)) + np.tile((q_end - q_start), (n, 1)) * np.tile(ticks.reshape(n, 1),

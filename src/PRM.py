@@ -19,14 +19,14 @@ def prm_min_torque(q_start, q_goal, robot, samples=500, k=5, sphere_centers=[], 
         # Check collision of config
         if not utils.check_collision(robot, rand_config, sphere_centers, sphere_radii):
             # Add node to graph
-            configs[i, :] = rand_config[:, 0]
+            configs[i, :] = rand_config
             G.add_node(i, config=rand_config)
             i += 1
     # Add start and end node
     G.add_node(samples, config=q_start)
     G.add_node(samples+1, config=q_goal)
-    configs[samples, :] = q_start[0]
-    configs[samples + 1, :] = q_goal[0]
+    configs[samples, :] = q_start
+    configs[samples + 1, :] = q_goal
 
     print("Done adding nodes")
 
@@ -38,7 +38,7 @@ def prm_min_torque(q_start, q_goal, robot, samples=500, k=5, sphere_centers=[], 
         dists = np.empty([samples+2, 2])
         # For each node fine the k nearest nodes by config distance
         dists[:, 0] = np.arange(samples+2)
-        dists[:, 1] = np.sqrt(np.sum((configs-np.transpose(base_config))**2, axis=1))
+        dists[:, 1] = np.sqrt(np.sum((configs-base_config)**2, axis=1))
         # Sort by shortest distance
         dists = dists[dists[:, 1].argsort()]
         # Connect the closest cells and then add the torque of the ending node in the direction
@@ -66,7 +66,7 @@ def prm_min_torque(q_start, q_goal, robot, samples=500, k=5, sphere_centers=[], 
     for i in range(len(path)):
         config = G.nodes[path[i]]
         config = config["config"]
-        config_path[i] = config[:, 0]
+        config_path[i] = config
 
     # Return the list of configs
     return config_path
@@ -79,6 +79,6 @@ if __name__ == '__main__':
         [0, 0.5, 0],
     ])
     sphere_radii = np.array([0.1, 0.1])
-    prm = prm_min_torque(np.zeros([6, 1]), np.transpose(np.array([[175, 85, 60, 190, 120, 360]])),
+    prm = prm_min_torque(np.zeros([6]), np.transpose(np.array([175, 85, 60, 190, 120, 360])),
                          robot)
     print(prm)
