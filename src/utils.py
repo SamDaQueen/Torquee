@@ -96,6 +96,24 @@ def check_edge(robot, q_start, q_end, sphere_centers, sphere_radii, link_radius=
 
     return in_collision
 
+def calculate_distance_torque(robot, path, dt=1):
+    d = 0
+    t = 0
+    last_velocity = 0
+
+    for i in range(1, len(path)):
+        q_current = path[i]
+        q_last = path[i - 1]
+        current_velocity = (q_current - q_last) / dt
+        current_acceleration = (current_velocity - last_velocity) / dt
+
+        d += distance(q_current, q_last)
+        t += torque(robot, q_current, current_velocity, current_acceleration)
+
+        last_velocity = current_velocity
+
+    return d, t
+
 def get_eval_sphere_centers():
     sphere_centers = [
         [.7, .7, .2],
