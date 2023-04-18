@@ -19,15 +19,14 @@ class GeneticAlgorithm:
 
     def run(self, q_start, q_goal):
 
-        self.velocities = {tuple(q_start): 0}
-
         # Initialize population
         population = self._initialize_population(q_start, q_goal)
 
         for generation in range(self.num_generations):
             print(f"Generation {generation + 1}/{self.num_generations}...")
             # Evaluate fitness of population
-            self.fitness_scores = [self.fitness_function(individual) for individual in population]
+
+            fitness_scores = [self.fitness_function(individual) for individual in population]
 
             # Select parents for crossover
             parents = self.selection_method(population, self.fitness_scores)
@@ -54,14 +53,15 @@ class GeneticAlgorithm:
             self.velocities = {tuple(q_start): 0}
 
         # Return the best solution found
-        return population[0]
+        return population[0][0]
 
-    def _create_candidate(self, q_current, q_goal):
+    def _create_candidate(self, q_current, q_goal, last_vel):
         beta = 0.1
         # Move towards q_goal with probability beta
         if np.random.rand() < beta:
             q_next = self.step_size * (q_goal - q_current) + q_current
-            return q_next
+            qd, qdd = self._calculate_qd_qdd(q_next, q_current, last_vel)
+            return q_next, qd, qdd
         q_next = np.zeros_like(q_current, dtype=np.float64)
         for i in range(len(q_current)):
             q_range = self.joint_limits[i]
@@ -69,23 +69,32 @@ class GeneticAlgorithm:
             q_max = min(q_range[1], q_current[i] + self.step_size)
             val = np.random.uniform(q_min, q_max)
             q_next[i] = val
-        return q_next
+        qd, qdd = self._calculate_qd_qdd(q_next, q_current, last_vel)
+        return q_next, qd, qdd
 
-    def _initialize_population(self, q_start, q_goal):
+    def _initialize_population(self, q_start, q_goal, dt=1):
         # Generate a population of random paths from q_start to q_goal
         population = []
         for i in range(self.population_size):
             print(f"Initializing population {i + 1}/{self.population_size}...")
+            velocities = [0]
+            accelerations = [0]
             path = [q_start]
             while not equal(path[-1], q_goal):
-                candidate = self._create_candidate(path[-1], q_goal)  # Generate a random configuration
-                if self.evaluation_function(path[-1], candidate) < self.evaluation_function(path[-1], q_goal):
-                    path.append(candidate)
+                q, qd, qdd = self._create_candidate(path[-1], q_goal, velocities[-1])  # Generate a random configuration
+                if self.evaluation_function(path[-1], q, qd, qdd) \
+                        < self.evaluation_function(path[-1], q_goal, qd, qdd):
+                    velocities.append(qd)
+                    accelerations.append(qdd)
+                    path.append(q)
                 if len(path) > 1000:
                     break
             if not equal(path[-1], q_goal):
+                qd, qdd = self._calculate_qd_qdd(q_goal, path[-1], velocities[-1])
+                velocities.append(qd)
+                accelerations.append(qdd)
                 path.append(q_goal)
-            population.append(path)
+            population.append((path, velocities, accelerations))
         return population
 
     def _crossover(self, parent1, parent2, crossover_rate):
@@ -93,38 +102,55 @@ class GeneticAlgorithm:
             return parent1
 
         # Uniform crossover
-        child = []
-        min_length = min(len(parent1), len(parent2))
+        child_q = []
+        min_length = min(len(parent1[0]), len(parent2[0]))
         for i in range(min_length):
             if np.random.rand() < 0.5:
-                child.append(parent1[i])
+                child_q.append(parent1[0][i])
             else:
-                child.append(parent2[i])
+                child_q.append(parent2[0][i])
 
         # Append the remaining configurations from the longer parent
-        if len(parent1) > len(parent2):
-            child.extend(parent1[min_length:])
+        if len(parent1[0]) > len(parent2[0]):
+            child_q.extend(parent1[0][min_length:])
         else:
-            child.extend(parent2[min_length:])
+            child_q.extend(parent2[0][min_length:])
 
         # Consider the step size when generating the child
-        child = np.array(child)
-        for i in range(1, len(child)):
-            diff = np.abs(child[i] - child[i - 1])
+        for i in range(1, len(child_q)):
+            diff = np.abs(child_q[i] - child_q[i - 1])
             if np.any(diff > self.step_size):
-                child[i] = np.sign(child[i:] - child[i - 1:]) * self.step_size + child[i - 1]
-            if tuple(child[i]) not in self.velocities:
-                self.velocities[tuple(child[i])] = (child[i] - child[i - 1]) / self.dt
+                child_q[i] = np.sign(child_q[i] - child_q[i - 1]) * self.step_size + child_q[i - 1]
 
-        return child
+        child_velocities = [0]
+        child_accelerations = [0]
+
+        for i in range(1, len(child_q)):
+            qd, qdd = self._calculate_qd_qdd(child_q[i], child_q[i - 1], child_velocities[i - 1])
+            child_velocities.append(qd)
+            child_accelerations.append(qdd)
+
+        return child_q, child_velocities, child_accelerations
 
     def _mutate(self, individual, mutation_rate, q_goal):
-        for i in range(1, len(individual)):
+        mutated_q = [individual[0][0]]
+
+        velocities = [0]
+        accelerations = [0]
+        for i in range(1, len(individual[0]) - 1):
+            if np.random.rand() < mutation_rate / 1.2:
+                continue
             if np.random.rand() < mutation_rate:
-                individual[i] = self._create_candidate(individual[i - 1], q_goal)  # Generate a new random configuration
-                if tuple(individual[i]) not in self.velocities:
-                    self.velocities[tuple(individual[i])] = (individual[i] - individual[i - 1]) / self.dt
-        return individual
+                q, qd, qdd = self._create_candidate(mutated_q[-1], q_goal, velocities[-1])  # Generate a new random configuration
+                mutated_q.append(q)
+                velocities.append(qd)
+                accelerations.append(qdd)
+            else:
+                qd, qdd = self._calculate_qd_qdd(individual[0][i], mutated_q[-1], velocities[-1])
+                mutated_q.append(individual[0][i])
+                velocities.append(qd)
+                accelerations.append(qdd)
+        return mutated_q, velocities, accelerations
 
     def selection_method(self, population, fitness_scores):
         fitness_scores = np.array(fitness_scores)
@@ -134,12 +160,12 @@ class GeneticAlgorithm:
         total_fitness = np.sum(fitness_scores)
         probabilities = fitness_scores / total_fitness
         selected_indices = np.random.choice(len(population), size=len(population), p=probabilities)
-        selected_individuals = np.array(population)[selected_indices]
-        return selected_individuals.tolist()
+        selected_individuals = [population[i] for i in selected_indices]
+        return selected_individuals
 
-    def evaluation_function(self, q_current, q_next):
-        qd = np.abs(q_next - q_current) / self.dt
-        qdd = (qd - self.velocities[tuple(q_current)]) / self.dt
+    def _calculate_qd_qdd(self, q_next, q_current, last_vel):
+        qd = (q_next - q_current) / self.dt
+        qdd = (qd - last_vel) / self.dt
 
         qd_sign = np.sign(qd)
         qdd_sign = np.sign(qdd)
@@ -147,21 +173,26 @@ class GeneticAlgorithm:
         qd = np.minimum(np.abs(qd), PUMA_VELOCITY_LIMITS) * qd_sign
         qdd = np.minimum(np.abs(qdd), PUMA_ACCELERATION_LIMITS) * qdd_sign
 
+        return qd, qdd
+
+    def evaluation_function(self, q_current, q_next, qd, qdd):
         if np.any(np.greater_equal(
                 np.abs(torque(self.robot, q_next, qd, qdd)),
                 PUMA_TORQUE_LIMITS)):
             return np.inf
 
-        if tuple(q_next) not in self.velocities:
-            self.velocities[tuple(q_next)] = qd
-
-        return .9 * distance_cost(self.robot, q_current, q_next) + .1 * torque_cost(self.robot, q_current, qd, qdd)
+        return 90 * distance_cost(self.robot, q_current, q_next) + 10 * torque_cost(self.robot, q_current, qd, qdd)
 
     def fitness_function(self, individual):
         total_cost = 0
-        for i in range(len(individual) - 1):
-            q_current = individual[i]
-            q_next = individual[i + 1]
-            cost = self.evaluation_function(q_current, q_next)
+
+        path, velocities, accelerations = individual
+        for i in range(len(path) - 1):
+            q_current = path[i]
+            q_next = path[i + 1]
+            velocity = velocities[i + 1]
+            acceleration = accelerations[i + 1]
+            cost = self.evaluation_function(q_current, q_next, velocity, acceleration)
             total_cost += cost
+
         return 1 / total_cost
