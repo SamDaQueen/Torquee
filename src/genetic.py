@@ -15,6 +15,7 @@ class GeneticAlgorithm:
         self.joint_limits = list(zip(*robot.qlim))
         self.dt = dt
         self.step_size = step_size
+        self.fitness_scores = None
 
     def run(self, q_start, q_goal):
 
@@ -28,7 +29,7 @@ class GeneticAlgorithm:
             fitness_scores = [self.fitness_function(individual) for individual in population]
 
             # Select parents for crossover
-            parents = self.selection_method(population, fitness_scores)
+            parents = self.selection_method(population, self.fitness_scores)
 
             # Perform crossover to generate new offspring
             offspring = []
@@ -48,7 +49,8 @@ class GeneticAlgorithm:
             combined_population = population + offspring
 
             # Select the best individuals to form the next generation
-            population = self.selection_method(combined_population, fitness_scores + offspring_fitness_scores)
+            population = self.selection_method(combined_population, self.fitness_scores + offspring_fitness_scores)
+            self.velocities = {tuple(q_start): 0}
 
         # Return the best solution found
         return population[0][0]
