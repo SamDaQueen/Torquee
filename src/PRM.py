@@ -49,7 +49,6 @@ def prm_min_torque(q_start, q_goal, robot, samples=500, k=5, sphere_centers=[], 
             j_config = G.nodes[dists[j][0]]["q"]
             # Check edge and make sure its valid, if not valid check the next edge
             if utils.check_edge(robot, base_config, j_config, sphere_centers, sphere_radii):
-                print("collided")
                 num_neighbors += 1
             else:
                 # Add the edge

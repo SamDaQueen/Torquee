@@ -66,6 +66,8 @@ class Simulator:
         # for previous, target in zip(self.poses[:-1], self.poses[1:]):
         #    sum_of_torques += self.robot.move_arm(target, self.dt, self.interp_time, self.wait_time, self.payload)
 
+        time.sleep(10)
+
         # Move Robot Arm Section (poses = Nx6)
         cur_pose_goal = 0
         # Set first move
@@ -92,7 +94,7 @@ class Simulator:
                                             targetPositions=joint_target)
             # Step simulation
             p.stepSimulation()
-            time.sleep(1. / 25.)
+            time.sleep(1. / 100.)
 
         # return sum_of_torques
 
@@ -114,7 +116,7 @@ if __name__ == '__main__':
     q_goal = np.transpose(np.array([85, 40, 40, 40, 40, 40]))
 
     robot = rtb.models.DH.Puma560()
-    poses = PRM.prm_min_torque(q_start, q_goal, robot, samples=500,
+    poses = RRT.RRT(q_start, q_goal, robot,
                                sphere_centers=utils.get_eval_sphere_centers(),
                                sphere_radii=utils.get_eval_sphere_radii())
     if poses[0, 0] != np.inf:
