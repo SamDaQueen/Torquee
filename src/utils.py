@@ -17,6 +17,14 @@ def sample_spherical(coordinates, npoints, ndim=3, scale=0.05):
 def torque(robot, q, qd, qdd):
     return robot.rne(q, qd, qdd)
 
+def rand_puma_config():
+    q_min = np.array([-85, -40, -40, -40, -40, -40])
+    q_max = np.array([85, 40, 40, 40, 40, 40])
+    delta = q_max - q_min
+    rand = np.random.rand(6) * delta
+    config = rand + q_min
+    return config
+
 def torque_cost(robot, q, qd, qdd):
     tau = torque(robot, q, qd, qdd)
     cost = np.sqrt(np.sum(np.square(tau))) / np.sqrt(np.sum(np.square(PUMA_TORQUE_LIMITS)))
