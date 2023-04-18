@@ -22,7 +22,7 @@ class PriorityQueue:
         return len(self.heap)
 
 
-def a_star_graph_search(robot, start, target, cspace, dt=1):
+def a_star_graph_search(robot, start, target, cspace, sphere_centers, sphere_radii, dt=1):
     frontier = PriorityQueue()
 
     start_cell = tuple(cspace.convert_config_to_cell(start))
@@ -35,14 +35,6 @@ def a_star_graph_search(robot, start, target, cspace, dt=1):
 
     distance = {start_cell: 0}
     velocities = {start_cell: 0}
-
-    sphere_centers = np.array([
-        [0.5, 0, 0],
-        [0, 0.5, 0],
-        [0, 0.5, 0.82]
-    ])
-
-    sphere_radii = np.array([0.1, 0.1, 0.1])
 
     while frontier:
         current_cell = frontier.pop()

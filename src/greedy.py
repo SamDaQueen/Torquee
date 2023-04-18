@@ -43,10 +43,13 @@ class GreedyNode:
         return f'[{self.q} - {self.h}]'
 
 
-def greedy(robot, q_start, q_goal, cspace, dt=1):
+def greedy(robot, q_start, q_goal, cspace, sphere_centers, sphere_radii, dt=1):
     """
     Find a path from q_start to q_goal using A* search
 
+    :param cspace: The configuration space
+    :param sphere_radii:  The radii of the spheres
+    :param sphere_centers:  The centers of the spheres
     :param robot: The DHRobot object
     :param q_start: The start configuration
     :param q_goal: The goal configuration
@@ -68,14 +71,6 @@ def greedy(robot, q_start, q_goal, cspace, dt=1):
     velocities = {tuple(q_start): 0}
 
     current = GreedyNode(q_start)
-
-    sphere_centers = np.array([
-        [0.5, 0, 0],
-        [0, 0.5, 0],
-        [0, 0.5, 0.82]
-    ])
-
-    sphere_radii = np.array([0.1, 0.1, 0.1])
 
     while current is not None and not equal(current.q, q_goal):
         closed_list.add(tuple(current.q))
