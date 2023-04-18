@@ -53,12 +53,11 @@ def a_star_graph_search(robot, start, target, cspace, sphere_centers, sphere_rad
         for successor_cell in successors:
             successor_config = np.array(cspace.convert_cell_to_config(successor_cell))
 
-            if check_collision(robot, successor_config, sphere_centers, sphere_radii) or \
-                    check_edge(robot, cspace.convert_cell_to_config(current_cell),
-                               cspace.convert_cell_to_config(successor_cell), sphere_centers, sphere_radii):
+            if check_collision(robot, np.rad2deg(successor_config), sphere_centers, sphere_radii) or \
+                    check_edge(robot, np.rad2deg(current_config), np.rad2deg(successor_config), sphere_centers, sphere_radii):
                 continue
 
-            print(successor_config)
+            # print(successor_config)
 
             if np.any(np.greater(np.abs(successor_config), robot.qlim[1, :])):
                 continue

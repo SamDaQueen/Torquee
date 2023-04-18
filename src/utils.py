@@ -69,7 +69,7 @@ def check_collision(robot, q, sphere_centers, sphere_radii, link_radius=0.05, re
             for k, sphere_center in enumerate(sphere_centers):
                 dist = np.linalg.norm(pos - sphere_center)
                 if dist <= (link_radius + sphere_radii[k]):
-                    print("Collision detected at link {} position {} with sphere {}!".format(i, j, k))
+                    # print("Collision detected at link {} position {} with sphere {}!".format(i, j, k))
                     in_collision = True
                     return in_collision
 

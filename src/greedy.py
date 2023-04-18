@@ -90,8 +90,8 @@ def greedy(robot, q_start, q_goal, cspace, sphere_centers, sphere_radii, dt=1):
 
             q_next_config = np.array(cspace.convert_cell_to_config(q_next))
 
-            if check_collision(robot, q_next_config, sphere_centers, sphere_radii) or \
-                    check_edge(robot, current_config, q_next_config, sphere_centers, sphere_radii):
+            if check_collision(robot, np.rad2deg(q_next_config), sphere_centers, sphere_radii) or \
+                    check_edge(robot, np.rad2deg(current_config), np.rad2deg(q_next_config), sphere_centers, sphere_radii):
                 continue
 
             if np.any(np.greater(np.abs(q_next_config), robot.qlim[1, :])):

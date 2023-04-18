@@ -8,6 +8,9 @@ import roboticstoolbox as rtb
 import utils
 from greedy import greedy
 from robot_cspace import RobotCSpace
+from a_star_search import a_star_graph_search
+import PRM
+from genetic import GeneticAlgorithm
 
 
 class Simulator:
@@ -138,14 +141,24 @@ if __name__ == '__main__':
     # A-star
     # path_cells = a_star_graph_search(robot, q_start, target, cspace, sphere_centers, sphere_radii)
     # poses = np.array([np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells])
+    # poses = np.rad2deg(poses)
+
+    # poses = np.array([q_start, q_goal])
 
     # Greedy
-    path_cells = greedy(robot, q_start, target, cspace, sphere_centers, sphere_radii)
-    poses = np.array([np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells])
+    # path_cells = greedy(robot, q_start, target, cspace, sphere_centers, sphere_radii)
+    # poses = np.array([np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells])
+    # poses = np.rad2deg(poses)
+
 
     # Genetic
-    # genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size)
-    # path_cells = genetic.run(start, target)
+    genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size, sphere_radii=utils.get_eval_sphere_radii(),
+                               sphere_centers=utils.get_eval_sphere_centers())
+    path = genetic.run(q_start, target)
+    poses = np.rad2deg(path)
+
+    poses[0] = q_start
+    print(poses)
 
     end_time = time.time()
 
