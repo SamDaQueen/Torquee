@@ -20,11 +20,11 @@ def prm_min_torque(q_start, q_goal, robot, samples=500, k=5, sphere_centers=[], 
         if not utils.check_collision(robot, rand_config, sphere_centers, sphere_radii):
             # Add node to graph
             configs[i, :] = rand_config
-            G.add_node(i, config=rand_config)
+            G.add_node(i, q=rand_config)
             i += 1
     # Add start and end node
-    G.add_node(samples, config=q_start)
-    G.add_node(samples+1, config=q_goal)
+    G.add_node(samples, q=q_start, qd=0)
+    G.add_node(samples+1, q=q_goal, qd=0)
     configs[samples, :] = q_start
     configs[samples + 1, :] = q_goal
 
@@ -33,7 +33,7 @@ def prm_min_torque(q_start, q_goal, robot, samples=500, k=5, sphere_centers=[], 
     # Add edges between k nearest neighbors for each node
     for i in range(samples+2):
         # Grab node config
-        base_config = G.nodes[i]["config"]
+        base_config = G.nodes[i]["q"]
         # Create empty dists array
         dists = np.empty([samples+2, 2])
         # For each node fine the k nearest nodes by config distance
@@ -44,16 +44,18 @@ def prm_min_torque(q_start, q_goal, robot, samples=500, k=5, sphere_centers=[], 
         # Connect the closest cells and then add the torque of the ending node in the direction
         # of the connection to the edge to act as edge weight
         j = 1
-        while j < k+1:
-            j_config = G.nodes[dists[j][0]]["config"]
+        num_neighbors = k
+        while j < k:
+            j_config = G.nodes[dists[j][0]]["q"]
             # Check edge and make sure its valid, if not valid check the next edge
             if utils.check_edge(robot, base_config, j_config, sphere_centers, sphere_radii):
-                k += 1
+                print("collided")
+                num_neighbors += 1
             else:
                 # Add the edge
-                G.add_edge(i, dists[j][0], torque=utils.torque_cost_prm(j_config, robot,
+                G.add_edge(i, dists[j][0], torque=utils.torque_cost_deg(j_config, robot,
                                                                         (j_config-base_config)/dt))
-                G.add_edge(dists[j][0], i, torque=utils.torque_cost_prm(base_config, robot,
+                G.add_edge(dists[j][0], i, torque=utils.torque_cost_deg(base_config, robot,
                                                                         (base_config-j_config)/dt))
             j += 1
 
@@ -65,7 +67,7 @@ def prm_min_torque(q_start, q_goal, robot, samples=500, k=5, sphere_centers=[], 
     config_path = np.empty([len(path), 6])
     for i in range(len(path)):
         config = G.nodes[path[i]]
-        config = config["config"]
+        config = config["q"]
         config_path[i] = config
 
     # Return the list of configs
@@ -79,6 +81,6 @@ if __name__ == '__main__':
         [0, 0.5, 0],
     ])
     sphere_radii = np.array([0.1, 0.1])
-    prm = prm_min_torque(np.zeros([6]), np.transpose(np.array([175, 85, 60, 190, 120, 360])),
+    prm = prm_min_torque(np.zeros([6]), np.transpose(np.array([85, 40, 40, 40, 40, 40])),
                          robot)
     print(prm)

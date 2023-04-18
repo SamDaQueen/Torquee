@@ -35,14 +35,15 @@ def RRT(q_start, q_goal, robot, max_samples=2000, goal_radius=5, step_size=5, bi
         else:
             q_new = q_near + ((step_size/(np.linalg.norm(q_rand-q_near)))*(q_rand-q_near))
         # Check if q_new is free and edge is free
-        if not utils.check_collision(robot, q_new, sphere_centers, sphere_radii) and not utils.check_edge(robot, q_near, q_new, sphere_centers, sphere_radii):
+        if not (utils.check_collision(robot, q_new, sphere_centers, sphere_radii)
+                and not utils.check_edge(robot, q_near, q_new, sphere_centers, sphere_radii)):
             # Calculate velocity and acceleration
             n_new = len(configs)
             qd = (q_near - q_new) / dt
             qdd = (G.nodes[n_near]["qd"] - qd) / dt
             # Add node and edge if found a valid edge
             G.add_node(n_new, q=q_new, qd=qd)
-            G.add_edge(dists[0, 0], len(configs), torque=utils.torque_cost_prm(
+            G.add_edge(dists[0, 0], len(configs), torque=utils.torque_cost_deg(
                 q_new, robot, qd, qdd))
             configs = np.concatenate((configs, [q_new]), axis=0)
             # Check if new node is within the q_goal radius

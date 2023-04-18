@@ -31,7 +31,7 @@ def torque_cost(robot, q, qd, qdd):
     return cost
 
 
-def torque_cost_prm(q, robot, qd=np.zeros([6, 1]), qdd=np.zeros([6, 1])):
+def torque_cost_deg(q, robot, qd=np.zeros([6, 1]), qdd=np.zeros([6, 1])):
     q = np.deg2rad(q)
     qd = np.deg2rad(qd)
     qdd = np.deg2rad(qdd)
@@ -85,3 +85,17 @@ def check_edge(robot, q_start, q_end, sphere_centers, sphere_radii, link_radius=
             break
 
     return in_collision
+
+def get_eval_sphere_centers():
+    sphere_centers = [
+        [.7, .7, .2],
+        [.5, -.5, .5],
+        [.75, 0, .7],
+        [-.75, 0, .5],
+        #[-.25, .6, .2]
+    ]
+    return sphere_centers
+
+def get_eval_sphere_radii():
+    sphere_radii = [.3, .1, .1, .5]
+    return sphere_radii
