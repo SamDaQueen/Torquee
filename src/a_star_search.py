@@ -41,7 +41,7 @@ def a_star_graph_search(robot, start, target, cspace, dt=1):
             continue
 
         if current_cell == goal_cell:
-            return reconstruct_path(parent, start_cell, current_cell)
+            return get_path(parent, start_cell, current_cell)
 
         seen.add(current_cell)
         successors = cspace.find_neighbors(current_cell)
@@ -83,14 +83,9 @@ def a_star_graph_search(robot, start, target, cspace, dt=1):
     return None
 
 
-def reconstruct_path(came_from, start, end):
-    """
-    >>> came_from = {'b': 'a', 'c': 'a', 'd': 'c', 'e': 'd', 'f': 'd'}
-    >>> reconstruct_path(came_from, 'a', 'e')
-    ['a', 'c', 'd', 'e']
-    """
+def get_path(parents, start, end):
     reverse_path = [end]
     while end != start:
-        end = came_from[end]
+        end = parents[end]
         reverse_path.append(end)
     return list(reversed(reverse_path))
