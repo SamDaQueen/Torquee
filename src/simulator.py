@@ -6,7 +6,8 @@ import swift
 
 from puma560 import Puma560
 from robot_cspace import RobotCSpace
-from src.greedy import greedy
+from src import utils
+from src.genetic import GeneticAlgorithm
 from utils import get_joint_limits
 
 
@@ -65,14 +66,16 @@ if __name__ == '__main__':
     # path_cells = a_star_graph_search(robot, start, target, cspace)
 
     # Greedy
-    path_cells = greedy(robot, start, target, cspace)
+    # path_cells = greedy(robot, start, target, cspace)
 
     # Genetic
-    # genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size)
-    # path_cells = genetic.run(start, target)
+    genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size,
+                               sphere_centers=utils.get_eval_sphere_centers(),
+                               sphere_radii=utils.get_eval_sphere_radii())
+    path = genetic.run(start, target)
     end_time = time.time()
 
-    path = [np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells]
+    # path = [np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells]
 
     print(f'Time taken: {round(end_time - start_time, 2)} seconds.')
     print(path)

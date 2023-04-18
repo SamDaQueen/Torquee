@@ -1,11 +1,13 @@
+import time
+
+import numpy as np
 import pybullet as p
 import pybullet_data
-import time
-import numpy as np
 import roboticstoolbox as rtb
-import PRM
+
 import utils
-import RRT
+from greedy import greedy
+from robot_cspace import RobotCSpace
 
 
 class Simulator:
@@ -79,7 +81,7 @@ class Simulator:
             # Get the current robot state of all joint
             cur_joint_state = p.getJointStates(self.robotId, range(6))
             # Extract only position states
-            cur_pose = np.empty(6,)
+            cur_pose = np.empty(6, )
             for i in range(6):
                 cur_pose[i] = cur_joint_state[i][0]
             # Check if position state has reached goal
@@ -87,9 +89,9 @@ class Simulator:
             compare = math < 0.01
             if np.all(compare):
                 # Set robot target to next target
-                if cur_pose_goal < poses.shape[0]-1:
+                if cur_pose_goal < poses.shape[0] - 1:
                     cur_pose_goal += 1
-                joint_target = poses[cur_pose_goal, :]/180*2*np.pi
+                joint_target = poses[cur_pose_goal, :] / 180 * 2 * np.pi
                 p.setJointMotorControlArray(self.robotId, range(6), controlMode=p.POSITION_CONTROL,
                                             targetPositions=joint_target)
             # Step simulation
@@ -114,13 +116,41 @@ class Simulator:
 if __name__ == '__main__':
     q_start = np.zeros([6])
     q_goal = np.transpose(np.array([85, 40, 40, 40, 40, 40]))
+    target = np.array(np.deg2rad([85, 40, 40, 40, 40, 40]))
+    joint_limits = np.deg2rad(utils.get_joint_limits())
+    step_size = np.deg2rad(10)
+    cspace = RobotCSpace(joint_limits, step_size)
+    sphere_centers = utils.get_eval_sphere_centers()
+    sphere_radii = utils.get_eval_sphere_radii()
 
     robot = rtb.models.DH.Puma560()
-    poses = RRT.RRT(q_start, q_goal, robot,
-                               sphere_centers=utils.get_eval_sphere_centers(),
-                               sphere_radii=utils.get_eval_sphere_radii())
+
+    start_time = time.time()
+    # RRT
+    # poses = RRT.RRT(q_start, q_goal, robot,
+    #                 sphere_centers=utils.get_eval_sphere_centers(),
+    #                 sphere_radii=utils.get_eval_sphere_radii())
+
+    # PRM
+    # poses = PRM.prm_min_torque(q_start, q_goal, robot, sphere_centers=utils.get_eval_sphere_centers(),
+    #                            sphere_radii=utils.get_eval_sphere_radii())
+
+    # A-star
+    # path_cells = a_star_graph_search(robot, q_start, target, cspace, sphere_centers, sphere_radii)
+    # poses = np.array([np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells])
+
+    # Greedy
+    path_cells = greedy(robot, q_start, target, cspace, sphere_centers, sphere_radii)
+    poses = np.array([np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells])
+
+    # Genetic
+    # genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size)
+    # path_cells = genetic.run(start, target)
+
+    end_time = time.time()
+
+    print("Time: ", end_time - start_time)
     if poses[0, 0] != np.inf:
-        Simulator().run(poses=poses, sphere_centers=utils.get_eval_sphere_centers(),
-                        sphere_radii=utils.get_eval_sphere_radii())
+        Simulator().run(poses, sphere_centers, sphere_radii)
     else:
         print("No solution found")

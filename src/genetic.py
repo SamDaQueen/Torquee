@@ -6,7 +6,8 @@ from utils import torque_cost, PUMA_VELOCITY_LIMITS, PUMA_ACCELERATION_LIMITS, t
 
 
 class GeneticAlgorithm:
-    def __init__(self, robot, population_size, num_generations, crossover_rate, mutation_rate, dt=0.1, step_size=0.1):
+    def __init__(self, robot, population_size, num_generations, crossover_rate, mutation_rate, sphere_centers,
+                 sphere_radii, dt=0.1, step_size=0.1):
         self.velocities = None
         self.robot = robot
         self.population_size = population_size
@@ -16,6 +17,8 @@ class GeneticAlgorithm:
         self.joint_limits = list(zip(*robot.qlim))
         self.dt = dt
         self.step_size = step_size
+        self.sphere_centers = sphere_centers
+        self.sphere_radii = sphere_radii
 
     def run(self, q_start, q_goal):
 
@@ -57,13 +60,7 @@ class GeneticAlgorithm:
 
     def _create_candidate(self, q_current, q_goal, last_vel):
         beta = 0.1
-        sphere_centers = np.array([
-            [0.5, 0, 0],
-            [0, 0.5, 0],
-            [0, 0.5, 0.82]
-        ])
 
-        sphere_radii = np.array([0.1, 0.1, 0.1])
         while True:
             # Move towards q_goal with probability beta
             if np.random.rand() < beta:
@@ -78,9 +75,9 @@ class GeneticAlgorithm:
                 val = np.random.uniform(q_min, q_max)
                 q_next[i] = val
             qd, qdd = self._calculate_qd_qdd(q_next, q_current, last_vel)
-            if not check_collision(self.robot, q_next, sphere_centers, sphere_radii) or \
+            if not check_collision(self.robot, q_next, self.sphere_centers, self.sphere_radii) or \
                     check_edge(self.robot, q_current,
-                               q_next, sphere_centers, sphere_radii):
+                               q_next, self.sphere_centers, self.sphere_radii):
                 break
         return q_next, qd, qdd
 
@@ -198,14 +195,6 @@ class GeneticAlgorithm:
 
     def fitness_function(self, individual):
 
-        sphere_centers = np.array([
-            [0.5, 0, 0],
-            [0, 0.5, 0],
-            [0, 0.5, 0.82]
-        ])
-
-        sphere_radii = np.array([0.1, 0.1, 0.1])
-
         total_cost = 0
 
         path, velocities, accelerations = individual
@@ -217,8 +206,8 @@ class GeneticAlgorithm:
             cost = self.evaluation_function(q_current, q_next, velocity, acceleration)
             total_cost += cost
 
-            if check_collision(self.robot, q_next, sphere_centers, sphere_radii) or \
-                    check_edge(self.robot, q_current, q_next, sphere_centers, sphere_radii):
+            if check_collision(self.robot, q_next, self.sphere_centers, self.sphere_radii) or \
+                    check_edge(self.robot, q_current, q_next, self.sphere_centers, self.sphere_radii):
                 continue
 
         return 1 / total_cost
