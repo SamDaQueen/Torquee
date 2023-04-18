@@ -10,7 +10,7 @@ def RRTS(q_start, q_goal, robot, neighborhood=100, max_samples=2000, goal_radius
     # Create a graph to hold the sampled nodes and edges
     dt = 1
     G = nx.DiGraph()
-    G.add_node(0, config=q_start)
+    G.add_node(0, cost=utils.torque_cost_deg(q_start, robot), g=q_start, qd=0)
     configs = np.array([q_start])
 
     i = 0
@@ -29,14 +29,58 @@ def RRTS(q_start, q_goal, robot, neighborhood=100, max_samples=2000, goal_radius
         dists = dists[dists[:, 1].argsort()]
         # Create new node config
         q_near = configs[int(dists[0, 0])]
-        if dists[0, 1] < 10:
+        if dists[0, 1] < step_size:
             q_new = q_rand
         else:
             q_new = q_near + ((step_size/(np.linalg.norm(q_rand-q_near)))*(q_rand-q_near))
-        # Check if q_new is free and edge is free
-        if not utils.check_collision(robot, q_new, sphere_centers, sphere_radii) and not utils.check_edge(robot, q_near, q_new, sphere_centers, sphere_radii):
-            # Add node and edge if found a valid edge
-            G.add_node(len(configs), config=q_new)
+        # Check if q_new is free
+        if not utils.check_collision(robot, q_new, sphere_centers, sphere_radii):
+            # Check for lowest cost node in neighborhood to connect to new node
+            lowest_cost = np.inf
+            lowest_cost_node = -1
+            i = 0
+            for i in range(G.number_of_nodes()):
+                if dists[i, 1] < neighborhood and not utils.check_edge(
+                        robot, q_new, G.nodes[i]["q"], sphere_centers, sphere_radii):
+                    q_old = G.nodes[i]["q"]
+                    qd_old = G.nodes[i]["qd"]
+                    qd_new = (q_new - q_old) / dt
+                    qdd_new = (qd_new - qd_old) / dt
+                    new_node_cost = utils.torque_cost_deg(q_new, robot, qd_new, qdd_new)
+                    old_node_cost = G.nodes[i]["cost"]
+                    if new_node_cost > old_node_cost:
+                        cost = new_node_cost
+                    else:
+                        cost = old_node_cost
+                    if cost < lowest_cost:
+                        lowest_cost = cost
+                        lowest_cost_node = dists[i, 0]
+            if lowest_cost_node != -1:
+                # Add node
+                G.add_node(G.number_of_nodes(), config=q_new)
+                G.add_edge(lowest_cost_node, G.number_of_nodes(), cost=lowest_cost)
+                # Check if new nodes in neighborhood have new node connect to it
+            while dists[i, 1] < neighborhood:
+                if not utils.check_edge(robot, q_new, G.nodes[i]["q"], sphere_centers, sphere_radii):
+                    current_cost = G.nodes[dists[i, 0]]["cost"]
+                    q_old = G.nodes[i]["q"]
+                    qd_old = G.nodes[i]["qd"]
+                    qd_new = (q_new - q_old) / dt
+                    qdd_new = (qd_new - qd_old) / dt
+                    new_node_cost = utils.torque_cost_deg(q_new, robot, qd_new, qdd_new)
+                    old_node_cost = G.nodes[i]["cost"]
+                    if new_node_cost > old_node_cost:
+                        cost = new_node_cost
+                    else:
+                        cost = old_node_cost
+                    if cost < lowest_cost:
+                        lowest_cost = cost
+                        lowest_cost_node = dists[i, 0]
+            if lowest_cost_node != -1:
+                G.add_edge(lowest_cost_node, G.number_of_nodes(), cost=lowest_cost)
+
+
+
             G.add_edge(dists[0, 0], len(configs), torque=utils.torque_cost_prm(
                 q_new, robot, (q_near - q_new) / dt))
             configs = np.concatenate((configs, [q_new]), axis=0)
