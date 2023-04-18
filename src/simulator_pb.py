@@ -34,8 +34,6 @@ class Simulator:
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0, 0, 0)
 
-        # Load plane
-        p.loadURDF("plane.urdf")
         # Load robot
         self.robotId = p.loadURDF(robot_urdf, [0, 0, 0], zero_orientation, useFixedBase=True)
 
@@ -52,6 +50,9 @@ class Simulator:
         # Load Spheres
         if sphere_centers is not None:
             zero_orientation = p.getQuaternionFromEuler([0, 0, 0])
+
+            # Load Plane
+            p.loadURDF("plane.urdf", [0, 0, 0], zero_orientation)
 
             # Load Spheres
             ids = np.empty(len(sphere_centers))
@@ -85,12 +86,7 @@ class Simulator:
                 # Set robot target to next target
                 if cur_pose_goal < poses.shape[0]-1:
                     cur_pose_goal += 1
-                joint_target = poses[cur_pose_goal, :]/180*2*np.pi
-                print("New------------------------------")
-                print(joint_target/2/np.pi*180)
-                print(cur_pose/2/np.pi*180)
-                print(math)
-                print(np.array([175, 85, 85, 85, 85, 85])/180*2*np.pi)
+                joint_target = poses[cur_pose_goal, :]/180*2*np.piS
                 p.setJointMotorControlArray(self.robotId, range(6), controlMode=p.POSITION_CONTROL,
                                             targetPositions=joint_target)
             # Step simulation
@@ -125,7 +121,7 @@ if __name__ == '__main__':
     # Eval Spheres
 
     robot = rtb.models.DH.Puma560()
-    poses = RRT.RRT(np.zeros([6]), np.transpose(np.array([-10, -10, -10, -10, -10, -10])),
+    poses = RRT.RRT(np.zeros([6]), np.transpose(np.array([85, 40, 40, 40, 40, 40])),
               robot)#, sphere_centers=sphere_centers, sphere_radii=sphere_radii)
     if poses[0, 0] != np.inf:
         Simulator().run(poses=poses, sphere_centers=sphere_centers, sphere_radii=sphere_radii)
