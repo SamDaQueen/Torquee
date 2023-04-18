@@ -75,9 +75,9 @@ class GeneticAlgorithm:
                 val = np.random.uniform(q_min, q_max)
                 q_next[i] = val
             qd, qdd = self._calculate_qd_qdd(q_next, q_current, last_vel)
-            if not check_collision(self.robot, q_next, self.sphere_centers, self.sphere_radii) or \
-                    check_edge(self.robot, q_current,
-                               q_next, self.sphere_centers, self.sphere_radii):
+            if not check_collision(self.robot, np.rad2deg(q_next), self.sphere_centers, self.sphere_radii) or \
+                    check_edge(self.robot, np.rad2deg(q_current),
+                               np.rad2deg(q_next), self.sphere_centers, self.sphere_radii):
                 break
         return q_next, qd, qdd
 
@@ -96,7 +96,7 @@ class GeneticAlgorithm:
                     velocities.append(qd)
                     accelerations.append(qdd)
                     path.append(q)
-                if len(path) > 1000:
+                if len(path) > 2000:
                     break
             if not equal(path[-1], q_goal):
                 qd, qdd = self._calculate_qd_qdd(q_goal, path[-1], velocities[-1])
@@ -206,8 +206,9 @@ class GeneticAlgorithm:
             cost = self.evaluation_function(q_current, q_next, velocity, acceleration)
             total_cost += cost
 
-            if check_collision(self.robot, q_next, self.sphere_centers, self.sphere_radii) or \
-                    check_edge(self.robot, q_current, q_next, self.sphere_centers, self.sphere_radii):
+            if check_collision(self.robot, np.rad2deg(q_next), self.sphere_centers, self.sphere_radii) or \
+                    check_edge(self.robot, np.rad2deg(q_current), np.rad2deg(q_next), self.sphere_centers,
+                               self.sphere_radii):
                 continue
 
         return 1 / total_cost

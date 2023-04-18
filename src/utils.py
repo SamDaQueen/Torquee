@@ -96,6 +96,7 @@ def check_edge(robot, q_start, q_end, sphere_centers, sphere_radii, link_radius=
 
     return in_collision
 
+
 def calculate_distance_torque(robot, path, dt=1):
     d = 0
     t = 0
@@ -112,7 +113,8 @@ def calculate_distance_torque(robot, path, dt=1):
 
         last_velocity = current_velocity
 
-    return d, t
+    return d, np.sum(t)
+
 
 def get_eval_sphere_centers():
     sphere_centers = [
@@ -120,13 +122,15 @@ def get_eval_sphere_centers():
         [.5, -.5, .5],
         [.75, 0, .7],
         [-.75, 0, .5],
-        #[-.25, .6, .2]
+        # [-.25, .6, .2]
     ]
     return sphere_centers
+
 
 def get_eval_sphere_radii():
     sphere_radii = [.3, .1, .1, .5]
     return sphere_radii
+
 
 def distance_cost(robot, q1, q2):
     max_dist = np.linalg.norm(robot.qlim[1, :] - robot.qlim[0, :])

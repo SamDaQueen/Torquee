@@ -6,11 +6,8 @@ import pybullet_data
 import roboticstoolbox as rtb
 
 import utils
-from greedy import greedy
 from robot_cspace import RobotCSpace
-from a_star_search import a_star_graph_search
-import PRM
-from genetic import GeneticAlgorithm
+from src.genetic import GeneticAlgorithm
 
 
 class Simulator:
@@ -150,19 +147,22 @@ if __name__ == '__main__':
     # poses = np.array([np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells])
     # poses = np.rad2deg(poses)
 
-
     # Genetic
-    genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size, sphere_radii=utils.get_eval_sphere_radii(),
+    genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size,
+                               sphere_radii=utils.get_eval_sphere_radii(),
                                sphere_centers=utils.get_eval_sphere_centers())
     path = genetic.run(q_start, target)
     poses = np.rad2deg(path)
 
     poses[0] = q_start
-    print(poses)
 
     end_time = time.time()
 
+    distance, torque = utils.calculate_distance_torque(robot, np.deg2rad(poses))
+
     print("Time: ", end_time - start_time)
+    print("Distance: ", distance)
+    print("Torque: ", torque)
     if poses[0, 0] != np.inf:
         Simulator().run(poses, sphere_centers, sphere_radii)
     else:
