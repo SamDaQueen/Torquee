@@ -15,6 +15,7 @@ class GeneticAlgorithm:
         self.joint_limits = list(zip(*robot.qlim))
         self.dt = dt
         self.step_size = step_size
+        self.fitness_scores = None
 
     def run(self, q_start, q_goal):
 
@@ -26,10 +27,10 @@ class GeneticAlgorithm:
         for generation in range(self.num_generations):
             print(f"Generation {generation + 1}/{self.num_generations}...")
             # Evaluate fitness of population
-            fitness_scores = [self.fitness_function(individual) for individual in population]
+            self.fitness_scores = [self.fitness_function(individual) for individual in population]
 
             # Select parents for crossover
-            parents = self.selection_method(population, fitness_scores)
+            parents = self.selection_method(population, self.fitness_scores)
 
             # Perform crossover to generate new offspring
             offspring = []
@@ -46,10 +47,11 @@ class GeneticAlgorithm:
             offspring_fitness_scores = [self.fitness_function(individual) for individual in offspring]
 
             # Merge population and offspring
-            combined_population = np.concatenate((population, offspring[:, np.newaxis, :]), axis=0)
+            combined_population = population + offspring
 
             # Select the best individuals to form the next generation
-            population = self.selection_method(combined_population, fitness_scores + offspring_fitness_scores)
+            population = self.selection_method(combined_population, self.fitness_scores + offspring_fitness_scores)
+            self.velocities = {tuple(q_start): 0}
 
         # Return the best solution found
         return population[0]
@@ -106,19 +108,22 @@ class GeneticAlgorithm:
             child.extend(parent2[min_length:])
 
         # Consider the step size when generating the child
+        child = np.array(child)
         for i in range(1, len(child)):
             diff = np.abs(child[i] - child[i - 1])
             if np.any(diff > self.step_size):
-                child[i] = np.sign(child[i] - child[i - 1]) * self.step_size + child[i - 1]
+                child[i] = np.sign(child[i:] - child[i - 1:]) * self.step_size + child[i - 1]
             if tuple(child[i]) not in self.velocities:
                 self.velocities[tuple(child[i])] = (child[i] - child[i - 1]) / self.dt
 
         return child
 
     def _mutate(self, individual, mutation_rate, q_goal):
-        for i in range(len(individual)):
+        for i in range(1, len(individual)):
             if np.random.rand() < mutation_rate:
                 individual[i] = self._create_candidate(individual[i - 1], q_goal)  # Generate a new random configuration
+                if tuple(individual[i]) not in self.velocities:
+                    self.velocities[tuple(individual[i])] = (individual[i] - individual[i - 1]) / self.dt
         return individual
 
     def selection_method(self, population, fitness_scores):
@@ -130,10 +135,10 @@ class GeneticAlgorithm:
         probabilities = fitness_scores / total_fitness
         selected_indices = np.random.choice(len(population), size=len(population), p=probabilities)
         selected_individuals = np.array(population)[selected_indices]
-        return selected_individuals
+        return selected_individuals.tolist()
 
     def evaluation_function(self, q_current, q_next):
-        qd = (q_next - q_current) / self.dt
+        qd = np.abs(q_next - q_current) / self.dt
         qdd = (qd - self.velocities[tuple(q_current)]) / self.dt
 
         qd_sign = np.sign(qd)

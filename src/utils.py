@@ -30,7 +30,6 @@ def equal(q, qp, tolerance=1e-3):
 
 
 def check_collision(robot, q, link_radius, sphere_centers, sphere_radii, resolution=5):
-    links = robot.links
     in_collision = False
     fkine = robot.fkine_all(q)
 
