@@ -8,7 +8,9 @@ import roboticstoolbox as rtb
 import utils
 from robot_cspace import RobotCSpace
 from src import RRT, PRM
+from src.a_star_search import a_star_graph_search
 from src.genetic import GeneticAlgorithm
+from src.greedy import greedy
 
 
 class Simulator:
@@ -121,32 +123,32 @@ if __name__ == '__main__':
     joint_limits = np.deg2rad(utils.get_joint_limits())
     step_size = np.deg2rad(10)
     cspace = RobotCSpace(joint_limits, step_size)
-    sphere_centers = utils.get_eval_sphere_centers(3)
+    sphere_centers = utils.get_eval_sphere_centers(1)
     sphere_radii = utils.get_eval_sphere_radii()
 
     robot = rtb.models.DH.Puma560()
 
     start_time = time.time()
     # RRT
-    # poses = RRT.RRT(q_start, q_goal, robot,
+    #poses = RRT.RRT(q_start, q_goal, robot,
     #               sphere_centers=sphere_centers,
     #                sphere_radii=sphere_radii)
 
     # PRM
-    poses = PRM.prm_min_torque(q_start, q_goal, robot, sphere_centers=sphere_centers,
-                               sphere_radii=sphere_radii)
+    #poses = PRM.prm_min_torque(q_start, q_goal, robot, sphere_centers=sphere_centers,
+    #                           sphere_radii=sphere_radii)
 
     # A-star
-    # path_cells = a_star_graph_search(robot, q_start, target, cspace, sphere_centers, sphere_radii)
-    # poses = np.array([np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells])
-    # poses = np.rad2deg(poses)
+    #path_cells = a_star_graph_search(robot, q_start, target, cspace, sphere_centers, sphere_radii)
+    #poses = np.array([np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells])
+    #poses = np.rad2deg(poses)
 
     # poses = np.array([q_start, q_goal])
 
     # Greedy
-    # path_cells = greedy(robot, q_start, target, cspace, sphere_centers, sphere_radii)
-    # poses = np.array([np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells])
-    # poses = np.rad2deg(poses)
+    path_cells = greedy(robot, q_start, target, cspace, sphere_centers, sphere_radii)
+    poses = np.array([np.array(cspace.convert_cell_to_config(cell)) for cell in path_cells])
+    poses = np.rad2deg(poses)
 
     # Genetic
     #genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size,

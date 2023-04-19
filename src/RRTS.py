@@ -10,11 +10,12 @@ def RRTS(q_start, q_goal, robot, neighborhood=100, max_samples=2000, goal_radius
     # Create a graph to hold the sampled nodes and edges
     dt = 1
     G = nx.DiGraph()
-    G.add_node(0, cost=utils.torque_cost_deg(q_start, robot), g=q_start, qd=0)
+    G.add_node(0, cost=utils.torque_cost_deg(q_start, robot), q=q_start, qd=0)
     configs = np.array([q_start])
 
     i = 0
     while i < max_samples:
+        print(i)
         # Generate random config or bias toward goal
         if np.random.rand() < bias:
             q_rand = q_goal
@@ -32,7 +33,7 @@ def RRTS(q_start, q_goal, robot, neighborhood=100, max_samples=2000, goal_radius
         if dists[0, 1] < step_size:
             q_new = q_rand
         else:
-            q_new = q_near + ((step_size/(np.linalg.norm(q_rand-q_near)))*(q_rand-q_near))
+            q_new = q_near + ((step_size / (np.linalg.norm(q_rand - q_near))) * (q_rand - q_near))
         # Check if q_new is free
         if not utils.check_collision(robot, q_new, sphere_centers, sphere_radii):
             # Check for lowest cost node in neighborhood to connect to new node
@@ -60,8 +61,9 @@ def RRTS(q_start, q_goal, robot, neighborhood=100, max_samples=2000, goal_radius
                 # Add node
                 G.add_node(G.number_of_nodes(), config=q_new, q=q_new, qd=qd_new)
                 G.add_edge(lowest_cost_node, G.number_of_nodes(), cost=lowest_cost)
+                configs = np.concatenate((configs, [q_new]), axis=0)
             # Check if new nodes in neighborhood have new node connect to it
-            for i in range(G.number_of_nodes()-1):
+            for i in range(G.number_of_nodes() - 1):
                 if dists[i, 1] < neighborhood and not utils.check_edge(
                         robot, q_new, G.nodes[dists[i, 0]]["q"], sphere_centers, sphere_radii):
                     end_current_cost = G.nodes[dists[i, 0]]["cost"]
@@ -70,42 +72,25 @@ def RRTS(q_start, q_goal, robot, neighborhood=100, max_samples=2000, goal_radius
                     qd_new = (q_old - q_new) / dt
                     qdd_new = (qd_old - qd_new) / dt
                     new_edge_cost = utils.torque_cost_deg(q_old, robot, qd_new, qdd_new)
-                    start_current_cost = G.nodes[G.number_of_nodes()-1]["cost"]
+                    start_current_cost = G.nodes[G.number_of_nodes() - 1]["cost"]
 
-
-
-
-
-
-                    if new_node_cost > old_node_cost:
-                        cost = new_node_cost
-                    else:
-                        cost = old_node_cost
-                    if cost < lowest_cost:
-                        lowest_cost = cost
-                        lowest_cost_node = dists[i, 0]
-            if lowest_cost_node != -1:
-                G.add_edge(lowest_cost_node, G.number_of_nodes(), cost=lowest_cost)
-
-
-
-            G.add_edge(dists[0, 0], len(configs), torque=utils.torque_cost_prm(
-                q_new, robot, (q_near - q_new) / dt))
-            configs = np.concatenate((configs, [q_new]), axis=0)
+                    if end_current_cost < new_edge_cost or end_current_cost < start_current_cost:
+                        G.add_edge(G.number_of_nodes() - 1, dists[i, 0], cost=np.max([
+                            new_edge_cost, start_current_cost]))
             # Check if new node is within the q_goal radius
             if np.sqrt(np.sum((q_goal - q_new) ** 2, axis=0)) < goal_radius:
                 return graph_to_path(G, q_goal)
         i += 1
     nx.draw_networkx(G)
     plt.show()
-    return np.ones([6, 1])*np.Inf
+    return np.ones([6, 1]) * np.Inf
 
 
 def graph_to_path(G, q_goal):
     # Find the shortest path
-    path = nx.shortest_path(G, 0, G.number_of_nodes()-1, "torque")
+    path = nx.shortest_path(G, 0, G.number_of_nodes() - 1, "torque")
     # Make the list of configs from the shortest path
-    config_path = np.zeros([len(path)+1, 6])
+    config_path = np.zeros([len(path) + 1, 6])
     for i in range(len(path)):
         config = G.nodes[path[i]]
         config = config["config"]
@@ -122,6 +107,6 @@ if __name__ == '__main__':
         [.5, .5, .5]
     ])
     sphere_radii = np.array([.1])
-    rrt = RRT(np.zeros([6]), np.transpose(np.array([175, 85, 60, 190, 120, 360])),
-              robot, sphere_centers=sphere_centers, sphere_radii=sphere_radii)
+    rrt = RRTS(np.zeros([6]), np.transpose(np.array([175, 85, 60, 190, 120, 360])),
+               robot)  # , sphere_centers=sphere_centers, sphere_radii=sphere_radii)
     print(rrt)
