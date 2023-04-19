@@ -38,16 +38,15 @@ def RRTS(q_start, q_goal, robot, neighborhood=100, max_samples=2000, goal_radius
             # Check for lowest cost node in neighborhood to connect to new node
             lowest_cost = np.inf
             lowest_cost_node = -1
-            i = 0
             for i in range(G.number_of_nodes()):
                 if dists[i, 1] < neighborhood and not utils.check_edge(
-                        robot, q_new, G.nodes[i]["q"], sphere_centers, sphere_radii):
-                    q_old = G.nodes[i]["q"]
-                    qd_old = G.nodes[i]["qd"]
+                        robot, q_new, G.nodes[dists[i, 0]]["q"], sphere_centers, sphere_radii):
+                    q_old = G.nodes[dists[i, 0]]["q"]
+                    qd_old = G.nodes[dists[i, 0]]["qd"]
                     qd_new = (q_new - q_old) / dt
                     qdd_new = (qd_new - qd_old) / dt
                     new_node_cost = utils.torque_cost_deg(q_new, robot, qd_new, qdd_new)
-                    old_node_cost = G.nodes[i]["cost"]
+                    old_node_cost = G.nodes[dists[i, 0]]["cost"]
                     if new_node_cost > old_node_cost:
                         cost = new_node_cost
                     else:
@@ -56,19 +55,28 @@ def RRTS(q_start, q_goal, robot, neighborhood=100, max_samples=2000, goal_radius
                         lowest_cost = cost
                         lowest_cost_node = dists[i, 0]
             if lowest_cost_node != -1:
+                q_old = G.nodes[lowest_cost_node]["q"]
+                qd_new = (q_new - q_old) / dt
                 # Add node
-                G.add_node(G.number_of_nodes(), config=q_new)
+                G.add_node(G.number_of_nodes(), config=q_new, q=q_new, qd=qd_new)
                 G.add_edge(lowest_cost_node, G.number_of_nodes(), cost=lowest_cost)
-                # Check if new nodes in neighborhood have new node connect to it
-            while dists[i, 1] < neighborhood:
-                if not utils.check_edge(robot, q_new, G.nodes[i]["q"], sphere_centers, sphere_radii):
-                    current_cost = G.nodes[dists[i, 0]]["cost"]
-                    q_old = G.nodes[i]["q"]
-                    qd_old = G.nodes[i]["qd"]
-                    qd_new = (q_new - q_old) / dt
-                    qdd_new = (qd_new - qd_old) / dt
-                    new_node_cost = utils.torque_cost_deg(q_new, robot, qd_new, qdd_new)
-                    old_node_cost = G.nodes[i]["cost"]
+            # Check if new nodes in neighborhood have new node connect to it
+            for i in range(G.number_of_nodes()-1):
+                if dists[i, 1] < neighborhood and not utils.check_edge(
+                        robot, q_new, G.nodes[dists[i, 0]]["q"], sphere_centers, sphere_radii):
+                    end_current_cost = G.nodes[dists[i, 0]]["cost"]
+                    q_old = G.nodes[dists[i, 1]]["q"]
+                    qd_old = G.nodes[dists[i, 1]]["qd"]
+                    qd_new = (q_old - q_new) / dt
+                    qdd_new = (qd_old - qd_new) / dt
+                    new_edge_cost = utils.torque_cost_deg(q_old, robot, qd_new, qdd_new)
+                    start_current_cost = G.nodes[G.number_of_nodes()-1]["cost"]
+
+
+
+
+
+
                     if new_node_cost > old_node_cost:
                         cost = new_node_cost
                     else:

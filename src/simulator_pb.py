@@ -7,6 +7,7 @@ import roboticstoolbox as rtb
 
 import utils
 from robot_cspace import RobotCSpace
+from src import RRT, PRM
 from src.genetic import GeneticAlgorithm
 
 
@@ -68,7 +69,7 @@ class Simulator:
         # for previous, target in zip(self.poses[:-1], self.poses[1:]):
         #    sum_of_torques += self.robot.move_arm(target, self.dt, self.interp_time, self.wait_time, self.payload)
 
-        time.sleep(10)
+        time.sleep(1)
 
         # Move Robot Arm Section (poses = Nx6)
         cur_pose_goal = 0
@@ -120,7 +121,7 @@ if __name__ == '__main__':
     joint_limits = np.deg2rad(utils.get_joint_limits())
     step_size = np.deg2rad(10)
     cspace = RobotCSpace(joint_limits, step_size)
-    sphere_centers = utils.get_eval_sphere_centers()
+    sphere_centers = utils.get_eval_sphere_centers(3)
     sphere_radii = utils.get_eval_sphere_radii()
 
     robot = rtb.models.DH.Puma560()
@@ -128,12 +129,12 @@ if __name__ == '__main__':
     start_time = time.time()
     # RRT
     # poses = RRT.RRT(q_start, q_goal, robot,
-    #                 sphere_centers=utils.get_eval_sphere_centers(),
-    #                 sphere_radii=utils.get_eval_sphere_radii())
+    #               sphere_centers=sphere_centers,
+    #                sphere_radii=sphere_radii)
 
     # PRM
-    # poses = PRM.prm_min_torque(q_start, q_goal, robot, sphere_centers=utils.get_eval_sphere_centers(),
-    #                            sphere_radii=utils.get_eval_sphere_radii())
+    poses = PRM.prm_min_torque(q_start, q_goal, robot, sphere_centers=sphere_centers,
+                               sphere_radii=sphere_radii)
 
     # A-star
     # path_cells = a_star_graph_search(robot, q_start, target, cspace, sphere_centers, sphere_radii)
@@ -148,13 +149,13 @@ if __name__ == '__main__':
     # poses = np.rad2deg(poses)
 
     # Genetic
-    genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size,
-                               sphere_radii=utils.get_eval_sphere_radii(),
-                               sphere_centers=utils.get_eval_sphere_centers())
-    path = genetic.run(q_start, target)
-    poses = np.rad2deg(path)
+    #genetic = GeneticAlgorithm(robot, 10, 10, 0.6, 0.01, step_size=step_size,
+    #                           sphere_radii=utils.get_eval_sphere_radii(),
+    #                           sphere_centers=utils.get_eval_sphere_centers())
+    #path = genetic.run(q_start, target)
+    #poses = np.rad2deg(path)
 
-    poses[0] = q_start
+    #poses[0] = q_start
 
     end_time = time.time()
 

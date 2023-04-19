@@ -116,14 +116,28 @@ def calculate_distance_torque(robot, path, dt=1):
     return d, np.sum(t)
 
 
-def get_eval_sphere_centers():
-    sphere_centers = [
-        [.7, .7, .2],
-        [.5, -.5, .5],
-        [.75, 0, .7],
-        [-.75, 0, .5],
-        # [-.25, .6, .2]
-    ]
+def get_eval_sphere_centers(i=1):
+    sphere_centers = []
+
+    if i == 1:
+        sphere_centers = [
+            [.7, .7, .2],
+            [.5, -.5, .5],
+            [.75, 0, .7],
+            [-.75, 0, .5]]
+    if i == 2:
+        sphere_centers = [
+            [.5, .5, .2],
+            [0, .5, .5],
+            [.7, 0, .7],
+            [-.75, 0, .5]]
+    if i == 3:
+        sphere_centers = [
+            [-.4, .4, .7],
+            [.5, -.5, 1],
+            [.5, .5, 1],
+            [-.75, 0, .7]]
+
     return sphere_centers
 
 
